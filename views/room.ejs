@@ -34,14 +34,17 @@
 
 
         document.addEventListener("DOMContentLoaded", () => {
-            let copyText = document.getElementById("inputcopy");
+            const copyText = document.getElementById("inputcopy");
             copyText.style.width='75%'
             copyText.style.border='none'
             copyText.style.outline='none'
 		    copyText.value = window.location.href
-            document.getElementById('copy').onclick=()=> {
+            const copyer = document.getElementById('copy')
+            copyer.onclick=()=> {
             copyText.select();
             document.execCommand("copy");
+            copyer.textContent='copied';
+            copyer.style.background="lightgreen"
         }
     })
     </script>
