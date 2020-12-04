@@ -139,13 +139,13 @@ enableAudio = (v=true)=>{
     if(!startedAudioStream) startAudio()
     stream.getAudioTracks().forEach(track => track.enabled=v);
     audioMuted=!v
-    $('toggleAudio').toggleClass('enable')
+    $('#toggleAudio').toggleClass('enable')
 }
 enableCamera =(v=true)=>{
     if(!startedVideoStream) startCamera()
     stream.getVideoTracks().forEach(track => track.enabled=v);
     cameraOff=!v
-    $('toggleCamera').toggleClass('enable')
+    $('#toggleCamera').toggleClass('enable')
 }
 // the new comer signals to old comers
 createPeer=(peerID, userID)=>{
