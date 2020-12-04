@@ -25,7 +25,7 @@ $(()=>{
 })
 // console.log(socket.id)
 
-const peers=[],// stores a list of {peerID,peer}
+let peers=[],// stores a list of {peerID,peer}
 peersObj={};// stores key(peerID) & value(peer)
 
 
@@ -42,7 +42,9 @@ createVideo=(id)=>{
 }
 
 initVideo=(id, vidStream,options={})=>{
-    $.id(getID(id)).prop({srcObject:vidStream,playsInline:true,...options}).$$.play()
+    $.id(getID(id))
+    .prop({srcObject:vidStream,...options})
+    .attr({playsInline:'',autoplay:'',})
     //add old browser support
 }
 
@@ -88,7 +90,7 @@ startStreaming = ({video=false,audio=false}={})=>{
             if(!startedAudioStream)startedAudioStream=!!audio;
             if(audio&&video){
                  window.stream=stream;
-                 userVideo.prop({srcObject:stream}).$$.play()
+                 userVideo.prop({srcObject:stream,muted:true})
                 }
             else if(video){
                 peers.forEach(p=>{
@@ -99,7 +101,7 @@ startStreaming = ({video=false,audio=false}={})=>{
                 });
                 stream.removeTrack(stream.getVideoTracks()[0])
                 stream.addTrack(newStream.getVideoTracks()[0])
-                userVideo.prop({srcObject:stream}).$$.play()
+                userVideo.prop({srcObject:stream,muted:true})
             }
             else {
                 peers.forEach(p=>{
@@ -128,7 +130,7 @@ startAudio=(audio=true)=>{
 
 removePeer=(id)=>{
     const peerVideo=$.id(getID(id))
-    peerVideo.rmAttr('src').$$.pause()
+    peerVideo.prop('srcObject',null)
 
     // peerVideo.detachParent()
     $('main#grid').detach(peerVideo.parent.detach(peerVideo))
@@ -206,50 +208,49 @@ joinMeet=()=>{
         console.log('socket connected')
         userVideo.id=getID(userID())
         $('#leave').rmClass('d-none')
+        socket.emit("join-room",roomID)
     })
 
-    socket.emit("join-room",roomID)
-
-        socket.on('room-full',()=>{
-            alert('Sorry room is already full')
-            leaveMeet()
-        })
-        
-        // to get and setup peers already in the meet
-        socket.on('joined-in-room',users=>{
-            users.forEach(id=>{
-                const peer= createPeer(id, userID())
-                peers.push({
-                    peerID: id,
-                    peer
-                });peersObj[id]=peer
-                createVideo(id)
-                playVideos()
-            })
-        })
-
-        // to get and setup a newly joined peer
-        socket.on('user-joined', payload=>{
-            const peer=addPeer(payload.signal, payload.userID);
+    socket.on('room-full',()=>{
+        alert('Sorry room is already full')
+        leaveMeet()
+    })
+    
+    // to get and setup peers already in the meet
+    socket.on('joined-in-room',users=>{
+        users.forEach(id=>{
+            const peer= createPeer(id, userID())
             peers.push({
-                peerID: payload.userID,
+                peerID: id,
                 peer
-            });peersObj[payload.userID]=peer;
-            // console.log('user-joined','add')
-            createVideo(payload.userID)
+            });peersObj[id]=peer
+            createVideo(id)
             playVideos()
         })
-        socket.on('receiving-returned-signal', payload=>{
-            const item = peers.find(i=>i.peerID===payload.id);
-            item.peer.signal(payload.signal);
-            // playVideos()
-        })
+    })
+
+    // to get and setup a newly joined peer
+    socket.on('user-joined', payload=>{
+        const peer=addPeer(payload.signal, payload.userID);
+        peers.push({
+            peerID: payload.userID,
+            peer
+        });peersObj[payload.userID]=peer;
+        // console.log('user-joined','add')
+        createVideo(payload.userID)
+        playVideos()
+    })
+    socket.on('receiving-returned-signal', payload=>{
+        const item = peers.find(i=>i.peerID===payload.id);
+        item.peer.signal(payload.signal);
+        // playVideos()
+    })
 
     // socket.on('user-connected',({userID,data})=>{
-    //     console.log('user-connected',userID)
-    //     console.log('data',data)
-    //     createVideo(userID)
-    // })
+        //     console.log('user-connected',userID)
+        //     console.log('data',data)
+        //     createVideo(userID)
+        // })
     socket.on('peer-left',id=>{
         console.log('a peer left')
         removePeer(id)
@@ -260,6 +261,8 @@ joinMeet=()=>{
             removePeer(p.peerID)
             p.peer.destroy()
         })
+        peers=[]
+        peerObj={}
         $('#joinMeet').show()
     })
 
