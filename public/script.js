@@ -88,7 +88,7 @@ startStreaming = ({video=false,audio=false}={})=>{
             if(!startedAudioStream)startedAudioStream=!!audio;
             if(audio&&video){
                  window.stream=stream;
-                 userVideo.prop({srcObject:stream}).$$.play()
+                 userVideo.prop({srcObject:stream,muted:true})
                 }
             else if(video){
                 peers.forEach(p=>{
@@ -99,7 +99,7 @@ startStreaming = ({video=false,audio=false}={})=>{
                 });
                 stream.removeTrack(stream.getVideoTracks()[0])
                 stream.addTrack(newStream.getVideoTracks()[0])
-                userVideo.prop({srcObject:stream}).$$.play()
+                userVideo.prop({srcObject:stream,muted:true})
             }
             else {
                 peers.forEach(p=>{
@@ -257,6 +257,7 @@ joinMeet=()=>{
     })
     socket.on('disconnect',()=>{
         peers.forEach(p=>{
+            console.log(p.peerID)
             removePeer(p.peerID)
             p.peer.destroy()
         })
