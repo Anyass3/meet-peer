@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Meeet Room</title>
     <link rel="stylesheet" href="/global.css">
-    <script src="/socket.io/socket.io.js" defer></script>
+    <script defer src="/socket.io/socket.io.js"></script>
     <!-- <script src="https://cdn.jsdelivr.net/npm/simple-peer/simplepeer.min.js"></script> -->
-    <script src="/simplepeer.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/abquery@0.3.4/dist/index.min.js"></script>
+    <script defer src="/simplepeer.min.js"></script>
+    <script  src="https://cdn.jsdelivr.net/npm/abquery@0.3.4/dist/index.min.js"></script>
     <style>
         body{
             background-color: aliceblue;
@@ -19,48 +19,88 @@
             height:300px;
             object-fit: cover;
             border-radius: 5px;
+            background: black
         }
         #grid{
             display:flex;
             justify-content: space-evenly;
             flex-wrap: wrap;
         }
+        #grid div div button:active{
+            transform: scale(0.9)
+        }
+        #grid div div button{
+            outline: none;
+            border: none;
+            background-color: lightcoral;
+        }#grid div div button.enable,#joinMeet{
+            background-color: lightgreen;
+        }
+        #grid div div{
+            width:100%;
+            bottom:0;
+            display:flex;
+            justify-content: center;
+            position:absolute;
+        }
+        #grid div div#joinMeet{
+            display:flex;
+            justify-content: center;
+            width:100%;
+            top:0;
+            position:absolute;
+        }
+        #leave{
+            background: red;
+        }
+        .d-none{display:none}
     </style>
 
     <script src="/script.js" defer></script>
+
     <script defer>
         const roomID="<%= roomID %>"
         // console.log(roomID)
-
-
-        document.addEventListener("DOMContentLoaded", () => {
-            const copyText = document.getElementById("inputcopy");
-            copyText.style.width='75%'
-            copyText.style.border='none'
-            copyText.style.outline='none'
-		    copyText.value = window.location.href
-            const copyer = document.getElementById('copy')
-            copyer.onclick=()=> {
-            copyText.select();
-            document.execCommand("copy");
-            copyer.textContent='copied';
-            copyer.style.background="lightgreen"
-        }
-    })
+        
+        $(() => {
+            $('#inputcopy')
+            .css({width:'75%', border:'none', outline: 'none'})
+            .val = window.location.href
+            
+            $('#copyer').click(()=> {
+                $('#inputcopy').$$.select();
+                $().$$.execCommand("copy");
+                $('#copyer').css('background',"lightgreen").text='copied'
+                setTimeout(()=> $('#copyer').css('background',"").text='copy link',1000)
+            });
+        })
     </script>
 </head>
 <body>
     <div slot="display:flex;">
-        <h1 style="text-align: center;">Peet Meet Room</h1>
+        <h1 style="text-align: center;">Peer Meet Room</h1>
+        <button id="leave" class="d-none">leave Meet</button>
     </div>
 
 <!-- <button id="join">join camera and audio</button> -->
 <main id="grid">
+    <div style="position:relative">
+        <video></video>
+        <div>
+            <button id="toggleCamera">video</button>
+            <button id="toggleAudio">audio</button>
+        </div>
+    </div>
+    <div>
+        <button id="joinMeet">
+            Enter Meet Now
+        </button>
+    </div>
 </main>
 
 <div style="margin-top:20px;display:flex;justify-content:center">
     <input id="inputcopy">
-    <button id="copy">copy link</button>
+    <button id="copyer">copy link</button>
 </div>
 
 </body>
