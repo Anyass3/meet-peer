@@ -34,11 +34,6 @@ createVideo=(id)=>{
     return $('<div>').appendParent($('main#grid')).$new('<video>')
     .prop({id:getID(id),controls:false,muted:true})
     else return $('video')
-    // if(!id).append(video).appendParent($('main#grid'))
-    // .css({position:'relative'}).$new('<a>',2)
-    // .css({position:absolute,bottom:0});
-    // else video.appendParent($('main#grid'))
-    // return video
 }
 
 initVideo=(id, vidStream,options={})=>{
@@ -119,9 +114,14 @@ startStreaming = ({video=false,audio=false}={})=>{
 
 startCamera=(video=true)=>{
     startStreaming({video});
-
 }
-
+shareScreen=()=>{
+    // startStreaming({video:{
+    //     mandatory:{
+    //         chromeMediaSource: 'screen'
+    //     }
+    // }})
+}
 startAudio=(audio=true)=>{
     startStreaming({audio})
 }
@@ -223,7 +223,7 @@ joinMeet=()=>{
             peers.push({
                 peerID: id,
                 peer
-            });peersObj[id]=peer
+            });peersObj[id]=peer;
             createVideo(id)
             playVideos()
         })
@@ -245,12 +245,6 @@ joinMeet=()=>{
         item.peer.signal(payload.signal);
         // playVideos()
     })
-
-    // socket.on('user-connected',({userID,data})=>{
-        //     console.log('user-connected',userID)
-        //     console.log('data',data)
-        //     createVideo(userID)
-        // })
     socket.on('peer-left',id=>{
         console.log('a peer left')
         removePeer(id)
