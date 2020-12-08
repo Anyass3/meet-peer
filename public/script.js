@@ -1,33 +1,15 @@
 
 let startedVideoStream=false,startedAudioStream=false,
-userVideo,cameraOff=true,audioMuted=true;
+userVideo,cameraOff=true,audioMuted=true,hasLeftWillingly=false;
 
 const userID =()=>socket.id
 const getID=(id)=>'peer-'+id
-$(()=>{
-    fakeStream()
-    $('#joinMeet').click((ev)=>{
-        joinMeet()
-        $(ev.target).hide()
-    })
-    $('#leave').click(ev=>{
-        leaveMeet()
-        $('#leave').addClass('d-none')
-    })
-    $('#toggleCamera').click((e)=>{
-        enableCamera(cameraOff)
-        $(e.target).toggleClass('enabled')
-    })
-    $('#toggleAudio').click((e)=>{
-        enableAudio(audioMuted)
-        $(e.target).toggleClass('enabled')
-    })
-})
+
 // console.log(socket.id)
 
-let peers=[],// stores a list of {peerID,peer}
-peersObj={};// stores key(peerID) & value(peer)
+let peers=new Set();// stores a set of {peerID,peer}
 
+peers.get=(id)=>Array.from(peers).find(i=>i.peerID===id)
 
 createVideo=(id)=>{
     if(id)
@@ -126,14 +108,16 @@ startAudio=(audio=true)=>{
     startStreaming({audio})
 }
 
-// $("button#start").click(()=>startStreaming())
 
 removePeer=(id)=>{
     const peerVideo=$.id(getID(id))
+    console.log(peerVideo)
     peerVideo.prop('srcObject',null)
-
     // peerVideo.detachParent()
     $('main#grid').detach(peerVideo.parent.detach(peerVideo))
+    const peer=peers.get(id)
+    peer.peer.destroy(); //destroy disconnected peer
+    peers.delete(peer)
 }
 
 
@@ -158,7 +142,7 @@ createPeer=(peerID, userID)=>{
     });
 
     peer.on("signal", signal=>{
-        console.log('signaling-peer', signal)
+        // console.log('signaling-peer', signal)
         // if(!peer.signaledPeer)
         socket.emit('signaling-peer',{peerID, userID, signal});
 
@@ -184,7 +168,7 @@ addPeer=(incomingSignal, userID)=>{
     // peer will not signal now except after 
     // being signaled by this user
     peer.on("signal", signal=>{
-        console.log('signal',signal)
+        // console.log('signal',signal)
         socket.emit('returning-signal',{userID, signal})
     })
     // peer.on('stream', stream=>{
@@ -200,15 +184,18 @@ addPeer=(incomingSignal, userID)=>{
 }
 
 
-leaveMeet=()=>socket.disconnect();
+leaveMeet=()=>{
+    socket.disconnect();
+}
 
 joinMeet=()=>{
     window.socket=io('/')
     socket.on('connect',()=>{
-        console.log('socket connected')
-        userVideo.id=getID(userID())
-        $('#leave').rmClass('d-none')
+        $('#joinMeet').hide()
         socket.emit("join-room",roomID)
+        userVideo.id=getID(userID())
+        $('#leave').show()
+        console.log('socket connected')
     })
 
     socket.on('room-full',()=>{
@@ -220,10 +207,10 @@ joinMeet=()=>{
     socket.on('joined-in-room',users=>{
         users.forEach(id=>{
             const peer= createPeer(id, userID())
-            peers.push({
+            peers.add({
                 peerID: id,
                 peer
-            });peersObj[id]=peer;
+            });
             createVideo(id)
             playVideos()
         })
@@ -232,32 +219,58 @@ joinMeet=()=>{
     // to get and setup a newly joined peer
     socket.on('user-joined', payload=>{
         const peer=addPeer(payload.signal, payload.userID);
-        peers.push({
+        peers.add({
             peerID: payload.userID,
             peer
-        });peersObj[payload.userID]=peer;
+        });
         // console.log('user-joined','add')
         createVideo(payload.userID)
         playVideos()
     })
     socket.on('receiving-returned-signal', payload=>{
-        const item = peers.find(i=>i.peerID===payload.id);
+        const item = peers.get(payload.id);
         item.peer.signal(payload.signal);
         // playVideos()
     })
     socket.on('peer-left',id=>{
         console.log('a peer left')
-        removePeer(id)
-        peersObj[id].destroy() //destroy disconnected peer
+        removePeer(id) 
     })
     socket.on('disconnect',()=>{
         peers.forEach(p=>{
+            console.log(p)
             removePeer(p.peerID)
-            p.peer.destroy()
         })
-        peers=[]
-        peerObj={}
-        $('#joinMeet').show()
+        peers.clear()
+        if(hasLeftWillingly)
+        setTimeout(()=>{
+            if(socket.disconnected){
+                $('#leave').hide();
+                $('#joinMeet').show();
+            }
+        },30000)
     })
 
 }
+
+// initiator
+$(()=>{
+    fakeStream()
+    $('#joinMeet').click((ev)=>{
+        joinMeet();
+    })
+    $('#leave').click(ev=>{
+        leaveMeet();
+        $('#leave').hide();
+        $('#joinMeet').show();
+        hasLeftWillingly=true;
+    })
+    $('#toggleCamera').click((e)=>{
+        enableCamera(cameraOff);
+        $(e.target).toggleClass('enabled');
+    })
+    $('#toggleAudio').click((e)=>{
+        enableAudio(audioMuted);
+        $(e.target).toggleClass('enabled');
+    })
+})
