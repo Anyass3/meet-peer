@@ -1,5 +1,5 @@
 
-let startedVideoStream=false,startedAudioStream=false,
+let startedVideoStream=false,startedAudioStream=false,enteredRoom=false,
 userVideo,cameraOff=true,audioMuted=true,hasLeftWillingly=false;
 
 const userID =()=>socket.id
@@ -111,7 +111,7 @@ startAudio=(audio=true)=>{
 
 removePeer=(id)=>{
     const peerVideo=$.id(getID(id))
-    console.log(peerVideo)
+    // console.log(peerVideo)
     peerVideo.prop('srcObject',null)
     // peerVideo.detachParent()
     $('main#grid').detach(peerVideo.parent.detach(peerVideo))
@@ -191,11 +191,13 @@ leaveMeet=()=>{
 joinMeet=()=>{
     window.socket=io('/')
     socket.on('connect',()=>{
+        if(enteredRoom){
         $('#joinMeet').hide()
         socket.emit("join-room",roomID)
         userVideo.id=getID(userID())
         $('#leave').show()
         console.log('socket connected')
+        } else leaveMeet()
     })
 
     socket.on('room-full',()=>{
@@ -238,7 +240,7 @@ joinMeet=()=>{
     })
     socket.on('disconnect',()=>{
         peers.forEach(p=>{
-            console.log(p)
+            // console.log(p)
             removePeer(p.peerID)
         })
         peers.clear()
@@ -256,14 +258,16 @@ joinMeet=()=>{
 // initiator
 $(()=>{
     fakeStream()
-    $('#joinMeet').click((ev)=>{
+    $('#joinMeet').debounce('click',(ev)=>{
         joinMeet();
+        enteredRoom=true;
     })
     $('#leave').click(ev=>{
         leaveMeet();
         $('#leave').hide();
         $('#joinMeet').show();
         hasLeftWillingly=true;
+        enteredRoom=false;
     })
     $('#toggleCamera').click((e)=>{
         enableCamera(cameraOff);
