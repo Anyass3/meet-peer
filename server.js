@@ -11,7 +11,7 @@ const {v4: uid} = require('uuid')
 app.set('view engine','ejs')
 app.use(express.static('public'))
 
-const MAX_PEERS=10 // this is the max number of allowed for video chat.
+const MAX_PEERS=10 // this is the max number allowed for chat room.
 
 const Rooms={};
 const peerRoom={};
