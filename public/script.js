@@ -240,7 +240,6 @@ joinMeet=()=>{
     })
     socket.on('disconnect',()=>{
         peers.forEach(p=>{
-            // console.log(p)
             removePeer(p.peerID)
         })
         peers.clear()
@@ -251,6 +250,8 @@ joinMeet=()=>{
                 $('#joinMeet').show();
             }
         },30000)
+
+        console.log('socket disconnected')
     })
 
 }
@@ -258,11 +259,11 @@ joinMeet=()=>{
 // initiator
 $(()=>{
     fakeStream()
-    $('#joinMeet').debounce('click',(ev)=>{
+    $('#joinMeet').throttle('click',(ev)=>{
         joinMeet();
         enteredRoom=true;
-    })
-    $('#leave').click(ev=>{
+    },5000)
+    $('#leave').throttle('click',ev=>{
         leaveMeet();
         $('#leave').hide();
         $('#joinMeet').show();
