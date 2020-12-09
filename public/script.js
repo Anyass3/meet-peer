@@ -20,14 +20,14 @@ createVideo = (id,name) => {
      $("<div>")
       .appendParent($("main#grid"))
       .$new("<video>")
-      .prop({ id: getID(id), controls: false, muted: true })
+      .prop({ id: getID(id), controls: false, muted: true})
       .parent.$('<div>').addClass('item').$('<p>').text=name||'Anonymous';
     return  $.id(getID(id))
   }
   else return $("video");
 };
 
-initVideo = (id, name, vidStream, options = {}) => {
+initVideo = (id, vidStream, options = {}) => {
   $.id(getID(id))
     .prop({ srcObject: vidStream, ...options })
     .attr({ playsInline: "", autoplay: "" });
@@ -39,7 +39,14 @@ playVideos = () => {
     if (!i.streaming)
       i.peer.on("stream", (stream) => {
         i.streaming = true;
-        initVideo(i.peerID, i.name, stream, { muted: false });
+        if(stream.getVideoTracks()[0].muted){
+          stream.getVideoTracks()[0].onunmute=()=>{
+            initVideo(i.peerID, stream, { muted: false });
+          };
+          initVideo(i.peerID, new MediaStream([fakeVideoStream,stream.getAudioTracks()[0]]), { muted: false });
+        }
+        else
+          initVideo(i.peerID, stream, { muted: false });
       });
   });
 };
@@ -54,10 +61,7 @@ fakeStream = () => {
   };
 
   let fakeVideo = ({ width = 640, height = 480 } = {}) => {
-    let canvas = Object.assign(document.createElement("canvas"), {
-      width,
-      height,
-    });
+    let canvas = document.createElement("canvas")
     canvas.getContext("2d").fillRect(0, 0, width, height);
     let stream = canvas.captureStream();
     return Object.assign(stream.getVideoTracks()[0], { enabled: false });
@@ -65,9 +69,10 @@ fakeStream = () => {
 
   let fakeVideoAudio = (...args) =>
     new MediaStream([fakeVideo(...args), fakeAudio()]);
-
+  window.fakeVideoStream=fakeVideo()
   window.stream = fakeVideoAudio();
   userVideo = createVideo();
+
 };
 
 startStreaming = ({ video = false, audio = false } = {}) => {
@@ -203,13 +208,13 @@ joinMeet = () => {
   window.socket = io("/");
   socket.on("connect", () => {
     if (enteredRoom) {
-      $("#joinMeet").hide().parent.hide();
       socket.emit("join-room", {roomID, name:$('#p-name-input').val});
-      $('#p-name-input').hide();
-      $('#p-name').show().text=($('#p-name-input').val||'Anonymous')+' (me)'
+      $("#joinMeet").hide().parent.hide();
+      $('#p-name-input').addClass('d-none');
+      $('#p-name').show().text=($('#p-name-input').val||'Anonymous')+' (Me)'
       userVideo.id = getID(userID());
       $("#leave").show();
-      $("#joinMeet").text="Enter Meet Now";
+      $("#joinMeet").rmAttr('disabled').text="Enter Meet Now";
       console.log("socket connected");
     } else leaveMeet();
   });
@@ -283,7 +288,7 @@ $(() => {
     (ev) => {
       joinMeet();
       enteredRoom = true;
-      $("#joinMeet").text="Joining..."
+      $("#joinMeet").text="Connecting..."
     },
     5000
   );
@@ -291,8 +296,8 @@ $(() => {
     leaveMeet();
     $("#leave").hide();
     $("#joinMeet").show().parent.show();
+    $('#p-name').addClass('d-none')
     $('#p-name-input').show();
-    $('#p-name').hide()
     hasLeftWillingly = true;
     enteredRoom = false;
   });

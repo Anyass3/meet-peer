@@ -48,7 +48,6 @@ app.get('/room/:room',(req, res)=>{
 })
 
 io.on('connection',socket => {
-    console.log('new socket connection')
     socket.on('join-room',({roomID,name})=>{
         // console.log('Rooms',Rooms)
         if(Rooms[roomID]){
@@ -73,11 +72,11 @@ io.on('connection',socket => {
     socket.on('signaling-peer', payload=>{
         // console.log('signaling-peer')
         io.to(payload.peerID).emit('user-joined',{signal:payload.signal,userID:payload.userID,name:payload.name})
-    })
+    });
     socket.on('returning-signal', payload=>{
         // console.log('returning-signal')
         io.to(payload.userID).emit('receiving-returned-signal',{signal:payload.signal,id:socket.id,name:payload.name})
-    })
+    });
     socket.on('disconnect',()=>{
         // console.log(socket.id,'disconnected')
         const roomID=peerRoom[socket.id]
@@ -86,7 +85,8 @@ io.on('connection',socket => {
             Rooms[roomID]=room.filter(i=>i.id!==socket.id)
             Rooms[roomID].forEach(s=>io.to(s.id).emit('peer-left', socket.id))
         }
-    })
+    });
+    console.log('new socket connection')
 })
 
 const port = process.env.PORT||3000;
