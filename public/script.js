@@ -15,16 +15,19 @@ let peers = new Set(); // stores a set of {peerID,peer}
 
 peers.get = (id) => Array.from(peers).find((i) => i.peerID === id);
 
-createVideo = (id) => {
-  if (id)
-    return $("<div>")
+createVideo = (id,name) => {
+  if (id){
+     $("<div>")
       .appendParent($("main#grid"))
       .$new("<video>")
-      .prop({ id: getID(id), controls: false, muted: true });
+      .prop({ id: getID(id), controls: false, muted: true })
+      .parent.$('<div>').addClass('item').$('<p>').text=name||'Anonymous';
+    return  $.id(getID(id))
+  }
   else return $("video");
 };
 
-initVideo = (id, vidStream, options = {}) => {
+initVideo = (id, name, vidStream, options = {}) => {
   $.id(getID(id))
     .prop({ srcObject: vidStream, ...options })
     .attr({ playsInline: "", autoplay: "" });
@@ -36,7 +39,7 @@ playVideos = () => {
     if (!i.streaming)
       i.peer.on("stream", (stream) => {
         i.streaming = true;
-        initVideo(i.peerID, stream, { muted: false });
+        initVideo(i.peerID, i.name, stream, { muted: false });
       });
   });
 };
@@ -143,7 +146,7 @@ enableCamera = (v = true) => {
   $("#toggleCamera").toggleClass("enable");
 };
 // the new comer signals to old comers
-createPeer = (peerID, userID) => {
+createPeer = (peerID) => {
   const peer = new SimplePeer({
     initiator: true,
     trickle: false,
@@ -153,7 +156,7 @@ createPeer = (peerID, userID) => {
   peer.on("signal", (signal) => {
     // console.log('signaling-peer', signal)
     // if(!peer.signaledPeer)
-    socket.emit("signaling-peer", { peerID, userID, signal });
+    socket.emit("signaling-peer", { peerID, signal, userID:userID(), name:$('#p-name-input').val });
 
     peer.signaledPeer = true;
   });
@@ -168,7 +171,7 @@ createPeer = (peerID, userID) => {
 };
 
 // old comers waiting for signals
-addPeer = (incomingSignal, userID) => {
+addPeer = (incomingSignal, userID, name) => {
   const peer = new SimplePeer({
     initiator: false,
     trickle: false,
@@ -178,7 +181,7 @@ addPeer = (incomingSignal, userID) => {
   // being signaled by this user
   peer.on("signal", (signal) => {
     // console.log('signal',signal)
-    socket.emit("returning-signal", { userID, signal });
+    socket.emit("returning-signal", { userID, signal, name });
   });
   // peer.on('stream', stream=>{
   //     console.log(stream)
@@ -200,10 +203,13 @@ joinMeet = () => {
   window.socket = io("/");
   socket.on("connect", () => {
     if (enteredRoom) {
-      $("#joinMeet").hide();
-      socket.emit("join-room", roomID);
+      $("#joinMeet").hide().parent.hide();
+      socket.emit("join-room", {roomID, name:$('#p-name-input').val});
+      $('#p-name-input').hide();
+      $('#p-name').show().text=($('#p-name-input').val||'Anonymous')+' (me)'
       userVideo.id = getID(userID());
       $("#leave").show();
+      $("#joinMeet").text="Enter Meet Now";
       console.log("socket connected");
     } else leaveMeet();
   });
@@ -214,27 +220,31 @@ joinMeet = () => {
   });
 
   // to get and setup peers already in the meet
-  socket.on("joined-in-room", (users) => {
-    users.forEach((id) => {
-      const peer = createPeer(id, userID());
+  socket.on("joined-in-room", joinedPeers => {
+    joinedPeers.forEach(i => {
+      const peer = createPeer(i.id);
       peers.add({
-        peerID: id,
+        peerID: i.id,
         peer,
+        name: i.name
       });
-      createVideo(id);
+      console.log("joined-in-room",i.name)
+      createVideo(i.id,i.name);
       playVideos();
     });
   });
 
   // to get and setup a newly joined peer
   socket.on("user-joined", (payload) => {
-    const peer = addPeer(payload.signal, payload.userID);
+    const peer = addPeer(payload.signal, payload.userID, payload.name);
     peers.add({
       peerID: payload.userID,
       peer,
+      name: payload.name
     });
+    console.log("user-joined",payload.name)
     // console.log('user-joined','add')
-    createVideo(payload.userID);
+    createVideo(payload.userID,payload.name);
     playVideos();
   });
   socket.on("receiving-returned-signal", (payload) => {
@@ -255,7 +265,9 @@ joinMeet = () => {
       setTimeout(() => {
         if (socket.disconnected) {
           $("#leave").hide();
-          $("#joinMeet").show();
+          $("#joinMeet").show().parent.show();
+          $('#p-name-input').show();
+          $('#p-name').hide()
         }
       }, 30000);
 
@@ -271,13 +283,16 @@ $(() => {
     (ev) => {
       joinMeet();
       enteredRoom = true;
+      $("#joinMeet").text="Joining..."
     },
     5000
   );
   $("#leave").throttle("click", (ev) => {
     leaveMeet();
     $("#leave").hide();
-    $("#joinMeet").show();
+    $("#joinMeet").show().parent.show();
+    $('#p-name-input').show();
+    $('#p-name').hide()
     hasLeftWillingly = true;
     enteredRoom = false;
   });

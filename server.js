@@ -49,7 +49,7 @@ app.get('/room/:room',(req, res)=>{
 
 io.on('connection',socket => {
     console.log('new socket connection')
-    socket.on('join-room',(roomID)=>{
+    socket.on('join-room',({roomID,name})=>{
         // console.log('Rooms',Rooms)
         if(Rooms[roomID]){
             const len=Rooms[roomID].length;
@@ -60,10 +60,10 @@ io.on('connection',socket => {
                 socket.emit('room-full')
                 return;
             }
-            Rooms[roomID].push(socket.id)
-        }else Rooms[roomID]=[socket.id]
+            Rooms[roomID].push({id: socket.id, name})
+        }else Rooms[roomID]=[{id: socket.id, name}]
         peerRoom[socket.id]=roomID
-        const peers= Rooms[roomID].filter(id=>id!==socket.id);
+        const peers= Rooms[roomID].filter(i=>i.id!==socket.id);
         // console.log(peers)
         socket.emit('joined-in-room',peers)
         // socket.join(roomID)
@@ -72,19 +72,19 @@ io.on('connection',socket => {
     });
     socket.on('signaling-peer', payload=>{
         // console.log('signaling-peer')
-        io.to(payload.peerID).emit('user-joined',{signal:payload.signal,userID:payload.userID})
+        io.to(payload.peerID).emit('user-joined',{signal:payload.signal,userID:payload.userID,name:payload.name})
     })
     socket.on('returning-signal', payload=>{
         // console.log('returning-signal')
-        io.to(payload.userID).emit('receiving-returned-signal',{signal:payload.signal,id:socket.id})
+        io.to(payload.userID).emit('receiving-returned-signal',{signal:payload.signal,id:socket.id,name:payload.name})
     })
     socket.on('disconnect',()=>{
         // console.log(socket.id,'disconnected')
         const roomID=peerRoom[socket.id]
         const room=Rooms[roomID]
         if(room){
-            Rooms[roomID]=room.filter(id=>id!==socket.id)
-            Rooms[roomID].forEach(s=>io.to(s).emit('peer-left', socket.id))
+            Rooms[roomID]=room.filter(i=>i.id!==socket.id)
+            Rooms[roomID].forEach(s=>io.to(s.id).emit('peer-left', socket.id))
         }
     })
 })
