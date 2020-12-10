@@ -28,10 +28,11 @@ createVideo = (id,name) => {
 };
 
 initVideo = (id, vidStream, options = {}) => {
-  $.id(getID(id))
+  let v=$.id(getID(id))
     .prop({ srcObject: vidStream, ...options })
     .attr({ playsInline: "", autoplay: "" });
-  //add old browser support
+  if(!('srcObject' in v.$$))
+    v.attr('src', URL.createObjectURL(vidStream))
 };
 
 playVideos = () => {
