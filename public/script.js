@@ -210,13 +210,15 @@ joinMeet = () => {
   socket.on("connect", () => {
     if (enteredRoom) {
       socket.emit("join-room", {roomID, name:$('#p-name-input').val});
-      $("#joinMeet").hide().parent.hide();
+      $("#joinMeet").hide().parent.hide({delay:0});
       $('#p-name-input').addClass('d-none');
       $('#p-name').show().text=($('#p-name-input').val||'Anonymous')+' (Me)'
       userVideo.id = getID(userID());
       $("#leave").show();
       $("#joinMeet").rmAttr('disabled').text="Enter Meet Now";
       console.log("socket connected");
+      hasLeftWillingly=false;
+      $('#leave').parent.$('p').hide()
     } else leaveMeet();
   });
 
@@ -267,15 +269,18 @@ joinMeet = () => {
       removePeer(p.peerID);
     });
     peers.clear();
-    if (hasLeftWillingly)
+    console.log('hasLeftWillingly',hasLeftWillingly)
+    if (!hasLeftWillingly){
+      console.log('hehehehh')
+      $('#leave').parent.$('p').show()
       setTimeout(() => {
+        console.log("socket hmmm");
         if (socket.disconnected) {
-          $("#leave").hide();
-          $("#joinMeet").show().parent.show();
-          $('#p-name-input').show();
-          $('#p-name').hide()
+          $('#leave').parent.$('p').hide()
+          $("#leave").$$.click();
         }
-      }, 30000);
+      }, 20000);
+    }
 
     console.log("socket disconnected");
   });
@@ -289,17 +294,17 @@ $(() => {
     (ev) => {
       joinMeet();
       enteredRoom = true;
-      $("#joinMeet").text="Connecting..."
+      $("#joinMeet").attr('disabled','').text="Connecting..."
     },
     5000
   );
   $("#leave").throttle("click", (ev) => {
+    hasLeftWillingly = true;
     leaveMeet();
     $("#leave").hide();
     $("#joinMeet").show().parent.show();
     $('#p-name').addClass('d-none')
     $('#p-name-input').show();
-    hasLeftWillingly = true;
     enteredRoom = false;
   });
   $("#toggleCamera").click((e) => {
