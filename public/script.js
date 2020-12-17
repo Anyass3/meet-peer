@@ -269,12 +269,9 @@ joinMeet = () => {
       removePeer(p.peerID);
     });
     peers.clear();
-    console.log('hasLeftWillingly',hasLeftWillingly)
     if (!hasLeftWillingly){
-      console.log('hehehehh')
       $('#leave').parent.$('p').show()
       setTimeout(() => {
-        console.log("socket hmmm");
         if (socket.disconnected) {
           $('#leave').parent.$('p').hide()
           $("#leave").$$.click();
