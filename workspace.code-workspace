@@ -1,0 +1,25 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"liveSassCompile.settings.autoprefix": null,
+		"liveSassCompile.settings.excludeList": [
+
+			"**/node_modules/**",
+			".vscode/**"
+		],
+		"liveSassCompile.settings.formats": [
+
+			{
+				"format": "compressed",
+				"extensionName": ".css",
+				"savePath": "/static/"
+			}
+		],
+		"liveSassCompile.settings.generateMap": false,
+		"liveSassCompile.settings.includeItems": []
+	}
+}

@@ -1,0 +1,547 @@
+// Required
+@import "../node_modules/bootstrap/scss/functions";
+@import "../node_modules/bootstrap/scss/variables";
+@import "../node_modules/bootstrap/scss/mixins";
+
+//some color vars
+$glight: #f5f5f5;
+
+$utilities: () !default;
+$utilities: map-merge(
+  (
+    // ...
+      "width":
+      (
+        property: width,
+        class: w,
+        responsive: true,
+        values: (
+          25: 25%,
+          30: 30%,
+          50: 50%,
+          75: 75%,
+          100: 100%,
+          auto: auto,
+        ),
+      ),
+    "height": (
+      property: height,
+      class: h,
+      responsive: true,
+      values: (
+        25: 25%,
+        30: 30%,
+        50: 50%,
+        75: 75%,
+        100: 100%,
+        auto: auto,
+      ),
+    ),
+    "display": (
+      responsive: true,
+      print: true,
+      property: display,
+      class: d,
+      values: none inline inline-block block flex inline-flex,
+    ),
+    "shadow": (
+      property: box-shadow,
+      class: shadow,
+      values: (
+        null: $box-shadow,
+        sm: $box-shadow-sm,
+        lg: $box-shadow-lg,
+        none: none,
+      ),
+    ),
+    "border": (
+      property: border,
+      class: b,
+      values: (
+        null: $border-width solid $border-color,
+        0: 0,
+      ),
+    ),
+    "border-top": (
+      property: border-top,
+      class: bt,
+      values: (
+        null: $border-width solid $border-color,
+        0: 0,
+      ),
+    ),
+    "border-right": (
+      property: border-right,
+      class: br,
+      values: (
+        null: $border-width solid $border-color,
+        0: 0,
+      ),
+    ),
+    "border-bottom": (
+      property: border-bottom,
+      class: bb,
+      values: (
+        null: $border-width solid $border-color,
+        0: 0,
+      ),
+    ),
+    "border-left": (
+      property: border-left,
+      class: bl,
+      values: (
+        null: $border-width solid $border-color,
+        0: 0,
+      ),
+    ),
+    "border-color": (
+      property: border-color,
+      class: border,
+      values:
+        map-merge(
+          $theme-colors,
+          (
+            "white": $white,
+          )
+        ),
+    ),
+    "rounded": (
+      property: border-radius,
+      class: rounded,
+      values: (
+        null: $border-radius,
+        sm: $border-radius-sm,
+        lg: $border-radius-lg,
+        circle: 50%,
+        pill: $border-radius-pill,
+        0: 0,
+      ),
+    ),
+    "rounded-top": (
+      property: border-top-left-radius border-top-right-radius,
+      class: rounded-top,
+      values: (
+        null: $border-radius,
+      ),
+    ),
+    // Flex utilities
+      "flex":
+      (
+        responsive: true,
+        property: flex,
+        values: (
+          fill: 1 1 auto,
+        ),
+      ),
+    "flex-direction": (
+      responsive: true,
+      property: flex-direction,
+      class: flex,
+      values: row column row-reverse column-reverse,
+    ),
+    "flex-grow": (
+      responsive: true,
+      property: flex-grow,
+      class: flex,
+      values: (
+        grow-0: 0,
+        grow-1: 1,
+      ),
+    ),
+    "flex-shrink": (
+      responsive: true,
+      property: flex-shrink,
+      class: flex,
+      values: (
+        shrink-0: 0,
+        shrink-1: 1,
+      ),
+    ),
+    "flex-wrap": (
+      responsive: true,
+      property: flex-wrap,
+      class: flex,
+      values: wrap nowrap wrap-reverse,
+    ),
+    "justify-content": (
+      responsive: true,
+      property: justify-content,
+      class: justify,
+      values: (
+        start: flex-start,
+        end: flex-end,
+        center: center,
+        between: space-between,
+        around: space-around,
+        evenly: space-evenly,
+      ),
+    ),
+    "align-items": (
+      responsive: true,
+      property: align-items,
+      values: (
+        start: flex-start,
+        end: flex-end,
+        center: center,
+        baseline: baseline,
+        stretch: stretch,
+      ),
+    ),
+    // "align-content": (
+      //   responsive: true,
+      //   property: align-content,
+      //   values: (
+      //     start: flex-start,
+      //     end: flex-end,
+      //     center: center,
+      //     between: space-between,
+      //     around: space-around,
+      //     stretch: stretch,
+      //   ),
+      // ),
+      "align-self":
+      (
+        responsive: true,
+        property: align-self,
+        class: "as",
+        values: (
+          auto: auto,
+          start: flex-start,
+          end: flex-end,
+          center: center,
+          baseline: baseline,
+          stretch: stretch,
+        ),
+      ),
+    "background-color": (
+      property: background-color,
+      class: bg,
+      values:
+        map-merge(
+          $theme-colors,
+          (
+            "body": $body-bg,
+            "white": $white,
+            "transparent": transparent,
+            "glight": $glight,
+          )
+        ),
+    ),
+    // Margin utilities
+      "margin":
+      (
+        responsive: true,
+        property: margin,
+        class: m,
+        values:
+          map-merge(
+            $spacers,
+            (
+              auto: auto,
+            )
+          ),
+      ),
+    "margin-x": (
+      responsive: true,
+      property: margin-right margin-left,
+      class: mx,
+      values:
+        map-merge(
+          $spacers,
+          (
+            auto: auto,
+          )
+        ),
+    ),
+    "margin-y": (
+      responsive: true,
+      property: margin-top margin-bottom,
+      class: my,
+      values:
+        map-merge(
+          $spacers,
+          (
+            auto: auto,
+          )
+        ),
+    ),
+    "margin-top": (
+      responsive: true,
+      property: margin-top,
+      class: mt,
+      values:
+        map-merge(
+          $spacers,
+          (
+            auto: auto,
+          )
+        ),
+    ),
+    "margin-right": (
+      responsive: true,
+      property: margin-right,
+      class: mr,
+      values:
+        map-merge(
+          $spacers,
+          (
+            auto: auto,
+          )
+        ),
+    ),
+    "margin-bottom": (
+      responsive: true,
+      property: margin-bottom,
+      class: mb,
+      values:
+        map-merge(
+          $spacers,
+          (
+            auto: auto,
+          )
+        ),
+    ),
+    "margin-left": (
+      responsive: true,
+      property: margin-left,
+      class: ml,
+      values:
+        map-merge(
+          $spacers,
+          (
+            auto: auto,
+          )
+        ),
+    ),
+    // Padding utilities
+      "padding":
+      (
+        responsive: true,
+        property: padding,
+        class: p,
+        values: $spacers,
+      ),
+    "padding-x": (
+      responsive: true,
+      property: padding-right padding-left,
+      class: px,
+      values: $spacers,
+    ),
+    "padding-y": (
+      responsive: true,
+      property: padding-top padding-bottom,
+      class: py,
+      values: $spacers,
+    ),
+    "padding-top": (
+      responsive: true,
+      property: padding-top,
+      class: pt,
+      values: $spacers,
+    ),
+    "padding-right": (
+      responsive: true,
+      property: padding-right,
+      class: pr,
+      values: $spacers,
+    ),
+    "padding-bottom": (
+      responsive: true,
+      property: padding-bottom,
+      class: pb,
+      values: $spacers,
+    ),
+    "padding-left": (
+      responsive: true,
+      property: padding-left,
+      class: pl,
+      values: $spacers,
+    ),
+    "input-padding": (
+      property: padding,
+      class: ip,
+      values: (
+        0: 0,
+        1: 0.3rem,
+        2: 0.5rem,
+        3: 0.7rem,
+        4: 0.9rem,
+        5: 1rem,
+      ),
+    ),
+    "max-width": (
+      property: max-width,
+      class: mw,
+      values: (
+        100: 100%,
+      ),
+    ),
+    "viewport-width": (
+      property: width,
+      class: vw,
+      values: (
+        100: 100vw,
+      ),
+    ),
+    "min-viewport-width": (
+      property: min-width,
+      class: min-vw,
+      values: (
+        100: 100vw,
+      ),
+    ),
+    "max-height": (
+      property: max-height,
+      class: mh,
+      values: (
+        100: 100%,
+      ),
+    ),
+    "viewport-height": (
+      property: height,
+      class: vh,
+      values: (
+        100: 100vh,
+      ),
+    ),
+    "min-viewport-height": (
+      property: min-height,
+      class: min-vh,
+      values: (
+        100: 100vh,
+      ),
+    ),
+    "position": (
+      property: position,
+      values: static relative absolute fixed sticky,
+    ),
+    "color": (
+      property: color,
+      class: text,
+      values:
+        map-merge(
+          $theme-colors,
+          (
+            "white": $white,
+            "body": $body-color,
+            "muted": $text-muted,
+            "black-50": rgba($black, 0.5),
+            "white-50": rgba($white, 0.5),
+            "reset": inherit,
+          )
+        ),
+    ),
+    "line-height": (
+      property: line-height,
+      class: lh,
+      values: (
+        1: 1,
+        sm: $line-height-sm,
+        base: $line-height-base,
+        lg: $line-height-lg,
+      ),
+    ),
+    //colors
+      "font-weight":
+      (
+        property: font-weight,
+        class: fw,
+        values: (
+          light: $font-weight-light,
+          lighter: $font-weight-lighter,
+          normal: $font-weight-normal,
+          bold: $font-weight-bold,
+          bolder: $font-weight-bolder,
+        ),
+      ),
+    "text-transform": (
+      property: text-transform,
+      class: text,
+      values: lowercase uppercase capitalize,
+    ),
+    "text-align": (
+      responsive: true,
+      property: text-align,
+      class: text,
+      values: (
+        start: left,
+        end: right,
+        center: center,
+      )
+    ),
+  ),
+  $utilities
+);
+$grid-breakpoints: (
+  xs: 0,
+  sm: 576px,
+  md: 768px,
+  lg: 992px,
+);
+.fluid {
+  @include img-fluid();
+}
+
+
+@import "../node_modules/bootstrap/scss/alert";
+@import "../node_modules/bootstrap/scss/forms/form-control";
+@import "../node_modules/bootstrap/scss/buttons";
+@import "../node_modules/bootstrap/scss/utilities/api";
+
+.list-unstyled {
+  padding-left: 0;
+  list-style: none;
+}
+.lead {
+  font-size: 1.25rem;
+  font-weight: 300;
+}
+.lead2 {
+  font-size: 1.5rem;
+  font-weight: 300;
+}
+.lead3 {
+  font-size: 1.5rem;
+  font-weight: 500;
+}
+.nav-link {
+  display: block;
+  padding: 0.5rem 1rem;
+  text-decoration: none;
+  transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out,
+    border-color 0.15s ease-in-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav-link {
+    transition: none;
+  }
+}
+.nav-link.disabled {
+  color: #6c757d;
+  pointer-events: none;
+  cursor: default;
+}
+.form-login {
+  width: 100%;
+  max-width: 330px;
+  padding: 15px;
+  margin: auto;
+}
+* {
+  box-sizing: border-box;
+}
+.h-shadow:hover {
+  box-shadow: $box-shadow-lg;
+}
+.h-shadow{
+  box-shadow: none;
+}
+.h-shadow:hover{box-shadow: 0 0.1rem .4rem rgba(0,0,0,0.15)}
+.nh-shadow{
+  box-shadow: 0 0.1rem 0.4rem rgba(0,0,0,0.15)
+}
+.nh-shadow:hover{box-shadow: none !important}
+.sm-nav-link {
+    color:#343a40;
+    font-weight: 400;
+}
