@@ -7,7 +7,7 @@ let startedVideoStream = false,
   hasLeftWillingly = false;
 
 const userID = () => socket.id;
-const getID = (id) => "peer-" + id;
+const getID = (id) => 'peer-' + id;
 
 // console.log(socket.id)
 
@@ -15,39 +15,39 @@ let peers = new Set(); // stores a set of {peerID,peer}
 
 peers.get = (id) => Array.from(peers).find((i) => i.peerID === id);
 
-createVideo = (id,name) => {
-  if (id){
-     $("<div>")
-      .appendParent($("main#grid"))
-      .$new("<video>")
-      .prop({ id: getID(id), controls: false, muted: true})
-      .parent.$('<div>').addClass('item').$('<p>').text=name||'Anonymous';
-    return  $.id(getID(id))
-  }
-  else return $("video");
+createVideo = (id, name) => {
+  if (id) {
+    $('<div>')
+      .appendParent($('main#grid'))
+      .$new('<video>')
+      .prop({ id: getID(id), controls: false, muted: true })
+      .parent.$('<div>')
+      .addClass('item')
+      .$('<p>').text = name || 'Anonymous';
+    return $.id(getID(id));
+  } else return $('video');
 };
 
 initVideo = (id, vidStream, options = {}) => {
-  let v=$.id(getID(id))
+  let v = $.id(getID(id))
     .prop({ srcObject: vidStream, ...options })
-    .attr({ playsInline: "", autoplay: "" });
-  if(!('srcObject' in v.$$))
-    v.attr('src', URL.createObjectURL(vidStream))
+    .attr({ playsInline: '', autoplay: '' });
+  if (!('srcObject' in v.$$)) v.attr('src', URL.createObjectURL(vidStream));
 };
 
 playVideos = () => {
   peers.forEach((i) => {
     if (!i.streaming)
-      i.peer.on("stream", (stream) => {
+      i.peer.on('stream', (stream) => {
         i.streaming = true;
-        if(stream.getVideoTracks()[0].muted){
-          stream.getVideoTracks()[0].onunmute=()=>{
+        if (stream.getVideoTracks()[0].muted) {
+          stream.getVideoTracks()[0].onunmute = () => {
             initVideo(i.peerID, stream, { muted: false });
           };
-          initVideo(i.peerID, new MediaStream([fakeVideoStream,stream.getAudioTracks()[0]]), { muted: false });
-        }
-        else
-          initVideo(i.peerID, stream, { muted: false });
+          initVideo(i.peerID, new MediaStream([fakeVideoStream, stream.getAudioTracks()[0]]), {
+            muted: false,
+          });
+        } else initVideo(i.peerID, stream, { muted: false });
       });
   });
 };
@@ -62,18 +62,16 @@ fakeStream = () => {
   };
 
   let fakeVideo = ({ width = 640, height = 480 } = {}) => {
-    let canvas = document.createElement("canvas")
-    canvas.getContext("2d").fillRect(0, 0, width, height);
+    let canvas = document.createElement('canvas');
+    canvas.getContext('2d').fillRect(0, 0, width, height);
     let stream = canvas.captureStream();
     return Object.assign(stream.getVideoTracks()[0], { enabled: false });
   };
 
-  let fakeVideoAudio = (...args) =>
-    new MediaStream([fakeVideo(...args), fakeAudio()]);
-  window.fakeVideoStream=fakeVideo()
+  let fakeVideoAudio = (...args) => new MediaStream([fakeVideo(...args), fakeAudio()]);
+  window.fakeVideoStream = fakeVideo();
   window.stream = fakeVideoAudio();
   userVideo = createVideo();
-
 };
 
 startStreaming = ({ video = false, audio = false } = {}) => {
@@ -88,22 +86,14 @@ startStreaming = ({ video = false, audio = false } = {}) => {
         userVideo.prop({ srcObject: stream, muted: true });
       } else if (video) {
         peers.forEach((p) => {
-          p.peer.replaceTrack(
-            stream.getVideoTracks()[0],
-            newStream.getVideoTracks()[0],
-            stream
-          );
+          p.peer.replaceTrack(stream.getVideoTracks()[0], newStream.getVideoTracks()[0], stream);
         });
         stream.removeTrack(stream.getVideoTracks()[0]);
         stream.addTrack(newStream.getVideoTracks()[0]);
         userVideo.prop({ srcObject: stream, muted: true });
       } else {
         peers.forEach((p) => {
-          p.peer.replaceTrack(
-            stream.getAudioTracks()[0],
-            newStream.getAudioTracks()[0],
-            stream
-          );
+          p.peer.replaceTrack(stream.getAudioTracks()[0], newStream.getAudioTracks()[0], stream);
         });
         stream.removeTrack(stream.getAudioTracks()[0]);
         stream.addTrack(newStream.getAudioTracks()[0]);
@@ -131,9 +121,9 @@ startAudio = (audio = true) => {
 removePeer = (id) => {
   const peerVideo = $.id(getID(id));
   // console.log(peerVideo)
-  peerVideo.prop("srcObject", null);
+  peerVideo.prop('srcObject', null);
   // peerVideo.detachParent()
-  $("main#grid").detach(peerVideo.parent.detach(peerVideo));
+  $('main#grid').detach(peerVideo.parent.detach(peerVideo));
   const peer = peers.get(id);
   peer.peer.destroy(); //destroy disconnected peer
   peers.delete(peer);
@@ -143,13 +133,24 @@ enableAudio = (v = true) => {
   if (!startedAudioStream) startAudio();
   stream.getAudioTracks().forEach((track) => (track.enabled = v));
   audioMuted = !v;
-  $("#toggleAudio").toggleClass("enable");
+  $('#toggleAudio').toggleClass('enable');
 };
 enableCamera = (v = true) => {
   if (!startedVideoStream) startCamera();
   stream.getVideoTracks().forEach((track) => (track.enabled = v));
   cameraOff = !v;
-  $("#toggleCamera").toggleClass("enable");
+  $('#toggleCamera').toggleClass('enable');
+};
+
+iceConfig = {
+  iceServers: [
+    { urls: 'stun:134.209.28.98:3478' },
+    {
+      urls: 'turn:134.209.28.98:3478',
+      username: 'anyass',
+      credential: 'te8V62xqLQ2GOEibYHCsRBnNE6M=',
+    },
+  ],
 };
 // the new comer signals to old comers
 createPeer = (peerID) => {
@@ -157,12 +158,18 @@ createPeer = (peerID) => {
     initiator: true,
     trickle: false,
     stream: stream,
+    config: iceConfig,
   });
 
-  peer.on("signal", (signal) => {
+  peer.on('signal', (signal) => {
     // console.log('signaling-peer', signal)
     // if(!peer.signaledPeer)
-    socket.emit("signaling-peer", { peerID, signal, userID:userID(), name:$('#p-name-input').val });
+    socket.emit('signaling-peer', {
+      peerID,
+      signal,
+      userID: userID(),
+      name: $('#p-name-input').val,
+    });
 
     peer.signaledPeer = true;
   });
@@ -182,12 +189,13 @@ addPeer = (incomingSignal, userID, name) => {
     initiator: false,
     trickle: false,
     stream: stream,
+    config: iceConfig,
   });
   // peer will not signal now except after
   // being signaled by this user
-  peer.on("signal", (signal) => {
+  peer.on('signal', (signal) => {
     // console.log('signal',signal)
-    socket.emit("returning-signal", { userID, signal, name });
+    socket.emit('returning-signal', { userID, signal, name });
   });
   // peer.on('stream', stream=>{
   //     console.log(stream)
@@ -206,113 +214,113 @@ leaveMeet = () => {
 };
 
 joinMeet = () => {
-  window.socket = io("/");
-  socket.on("connect", () => {
+  window.socket = io('/');
+  socket.on('connect', () => {
     if (enteredRoom) {
-      socket.emit("join-room", {roomID, name:$('#p-name-input').val});
-      $("#joinMeet").hide().parent.hide({delay:0});
+      socket.emit('join-room', { roomID, name: $('#p-name-input').val });
+      $('#joinMeet').hide().parent.hide({ delay: 0 });
       $('#p-name-input').addClass('d-none');
-      $('#p-name').show().text=($('#p-name-input').val||'Anonymous')+' (Me)'
+      $('#p-name').show().text = ($('#p-name-input').val || 'Anonymous') + ' (Me)';
       userVideo.id = getID(userID());
-      $("#leave").show();
-      $("#joinMeet").rmAttr('disabled').text="Enter Meet Now";
-      console.log("socket connected");
-      hasLeftWillingly=false;
-      $('#leave').parent.$('p').hide()
+      $('#leave').show();
+      $('#joinMeet').rmAttr('disabled').text = 'Enter Meet Now';
+      console.log('socket connected');
+      hasLeftWillingly = false;
+      $('#leave').parent.$('p').hide();
     } else leaveMeet();
   });
 
-  socket.on("room-full", () => {
-    alert("Sorry room is already full");
+  socket.on('room-full', () => {
+    alert('Sorry room is already full');
     leaveMeet();
   });
 
   // to get and setup peers already in the meet
-  socket.on("joined-in-room", joinedPeers => {
-    joinedPeers.forEach(i => {
+  socket.on('joined-in-room', (joinedPeers) => {
+    joinedPeers.forEach((i) => {
       const peer = createPeer(i.id);
       peers.add({
         peerID: i.id,
         peer,
-        name: i.name
+        name: i.name,
       });
-      console.log("joined-in-room",i.name)
-      createVideo(i.id,i.name);
+      console.log('joined-in-room', i.name);
+      createVideo(i.id, i.name);
       playVideos();
     });
   });
 
   // to get and setup a newly joined peer
-  socket.on("user-joined", (payload) => {
+  socket.on('user-joined', (payload) => {
     const peer = addPeer(payload.signal, payload.userID, payload.name);
     peers.add({
       peerID: payload.userID,
       peer,
-      name: payload.name
+      name: payload.name,
     });
-    console.log("user-joined",payload.name)
+    console.log('user-joined', payload.name);
     // console.log('user-joined','add')
-    createVideo(payload.userID,payload.name);
+    createVideo(payload.userID, payload.name);
     playVideos();
   });
-  socket.on("receiving-returned-signal", (payload) => {
+  socket.on('receiving-returned-signal', (payload) => {
     const item = peers.get(payload.id);
     item.peer.signal(payload.signal);
     // playVideos()
   });
-  socket.on("peer-left", (id) => {
+  socket.on('peer-left', (id) => {
     removePeer(id);
-    console.log("a peer left");
+    console.log('a peer left');
   });
-  socket.on("disconnect", () => {
+  socket.on('disconnect', () => {
     peers.forEach((p) => {
       removePeer(p.peerID);
     });
     peers.clear();
-    console.log('hasLeftWillingly',hasLeftWillingly)
-    if (!hasLeftWillingly){
-      console.log('hehehehh')
-      $('#leave').parent.$('p').show()
+    console.log('hasLeftWillingly', hasLeftWillingly);
+    if (!hasLeftWillingly) {
+      console.log('hehehehh');
+      $('#leave').parent.$('p').show();
       setTimeout(() => {
-        console.log("socket hmmm");
+        console.log('socket hmmm');
         if (socket.disconnected) {
-          $('#leave').parent.$('p').hide()
-          $("#leave").$$.click();
+          $('#leave').parent.$('p').hide();
+          $('#leave').$$.click();
         }
       }, 20000);
     }
 
-    console.log("socket disconnected");
+    console.log('socket disconnected');
   });
 };
 
 // initiator
 $(() => {
   fakeStream();
-  $("#joinMeet").throttle(
-    "click",
+  $('#joinMeet').throttle(
+    'click',
     (ev) => {
       joinMeet();
       enteredRoom = true;
-      $("#joinMeet").attr('disabled','').text="Connecting..."
+      $('#joinMeet').attr('disabled', '').text = 'Connecting...';
     },
     5000
   );
-  $("#leave").throttle("click", (ev) => {
+  $('#leave').throttle('click', (ev) => {
     hasLeftWillingly = true;
     leaveMeet();
-    $("#leave").hide();
-    $("#joinMeet").show().parent.show();
-    $('#p-name').addClass('d-none')
+    $('#leave').hide();
+    $('#joinMeet').show().parent.show();
+    $('#p-name').addClass('d-none');
     $('#p-name-input').show();
     enteredRoom = false;
   });
-  $("#toggleCamera").click((e) => {
+  $('#toggleCamera').click((e) => {
     enableCamera(cameraOff);
-    $(e.target).toggleClass("enabled");
+    $(e.target).toggleClass('enabled');
   });
-  $("#toggleAudio").click((e) => {
+  $('#toggleAudio').click((e) => {
     enableAudio(audioMuted);
-    $(e.target).toggleClass("enabled");
+    $(e.target).toggleClass('enabled');
   });
 });
