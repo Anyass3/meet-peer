@@ -10,56 +10,129 @@
 		// } else {
 		// 	this.error(res.status, data.message);
 		// }
-		return { post: { slug: params.roomID, title: 'string', html: '<p>hmm</p>' } };
+		return {
+			post: { slug: params.roomId, title: "string", html: "<p>hmm</p>" },
+		};
 	}
 </script>
 
 <script lang="ts">
-	export let post: { slug: string; title: string, html: any };
+	// const SimplePeer = require("simple-peer");
+	import { onMount } from "svelte";
+	// import io from "socket.io-client";
+	// export let post: { slug: string; title: string; html: any };
+	import store from "../../stores";
+	import Video from "../../components/video.svelte";
+	import JoinedMenu from "../../components/joinedMenu.svelte";
+	import { throttle } from "../../utils";
+	// import { log } from "console";
+	const {
+		getCameraState,
+		getAudioState,
+		getUserId,
+		getPeers,
+		getSocket,
+	} = store.getters;
+	// store.dispatch("setSimplePeer", SimplePeer);
+	const peers = getPeers();
+	let mic, cam;
+	$: mic = getAudioState();
+	$: cam = getCameraState();
+	$: console.log("peers", $peers);
+	let inMeet;
+	let id;
+	let socket;
+	$: socket = getSocket();
+	// store.mutations.toggleCameraState();
+	// initiator
+	const join_meet = () =>
+		throttle(() => {
+			store.dispatch("joinMeet");
+			store.dispatch("setEnteredRoom", true);
+			//   $("#joinMeet").attr('disabled','').text="Connecting..."
+		}, 5000)();
+	const leave_meet = () =>
+		throttle(() => {
+			store.dispatch("setHasLeftWillingly", true);
+			store.dispatch("leaveMeet");
+			store.dispatch("setEnteredRoom", false);
+		}, 5000)();
+
+	onMount(() => {
+		console.log("$socket", $socket);
+		store.dispatch("setUserVideo", document.querySelector("#userVideo"));
+		// console.log(SimplePeer);
+		store.dispatch("fakeStream");
+	});
 </script>
 
 <style>
-	/*
-		By default, CSS is locally scoped to the component,
-		and any unused styles are dead-code-eliminated.
-		In this page, Svelte can't know which elements are
-		going to appear inside the {{{post.html}}} block,
-		so we have to use the :global(...) modifier to target
-		all elements inside .content
-	*/
-	.content :global(h2) {
-		font-size: 1.4em;
-		font-weight: 500;
+	:global(body) {
+		background: aliceblue;
 	}
 
-	.content :global(pre) {
-		background-color: #f9f9f9;
-		box-shadow: inset 1px 1px 5px rgba(0, 0, 0, 0.05);
-		padding: 0.5em;
-		border-radius: 2px;
-		overflow-x: auto;
+	:global(button):hover {
+		text-decoration: none;
+		transform: scale(1.15);
 	}
-
-	.content :global(pre) :global(code) {
-		background-color: transparent;
-		padding: 0;
+	:global(button):active {
+		transform: scale(1);
+		transition: none;
 	}
-
-	.content :global(ul) {
-		line-height: 1.5;
+	#leaveMeet {
+		margin: auto;
+		border-radius: 10px;
+		background-color: #ffebbe;
+		color: #d50000;
 	}
-
-	.content :global(li) {
-		margin: 0 0 0.5em 0;
+	#joinMeet {
+		display: flex;
+		justify-content: center;
+		width: 100%;
+		top: 0;
+		position: absolute;
 	}
 </style>
 
 <svelte:head>
-	<title>{post.title}</title>
+	<script src="/simplepeer.min.js">
+	</script>
 </svelte:head>
 
-<h1>{post.title} {post.slug}</h1>
-
-<div class="content">
-	{@html post.html}
+<div style="display:flex;justify-content: center;">
+	<h1 style="text-align: center;">Peer Meet Room</h1>
+	<div>
+		<button id="leaveMeet" class="d-none">leave Meet</button>
+		<p style="color:red" class="d-none">reconnecting...</p>
+	</div>
 </div>
+<main class="d-flex justify-between flex-column  bg-primary">
+	<p>mic:{$mic}||cam:{$cam}</p>
+	<!-- {#each [...$peers] as peer}{peer}{/each} -->
+	<div class="d-flex justify-evenly flex-wrap">
+		<Video
+			name="Abdoulie"
+			id="userVideo"
+			main_style="flex-basis:auto"
+			inMeet
+			user />
+		{#each [...$peers] as peer (peer.peerId)}
+			{peer}
+			<Video id={'peer' + peer.peerId} />
+		{/each}
+	</div>
+	<div class="d-flex justify-center">
+		<button
+			id="joinMeet"
+			class="btn btn-success"
+			on:click={join_meet}
+			style="margin: 20px;">
+			Enter Meet Now
+		</button>
+		<button
+			id="leaveMeet"
+			on:click={leave_meet}
+			class="btn btn-danger">leave Meet</button>
+	</div>
+</main>
+<JoinedMenu />

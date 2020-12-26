@@ -1,5 +1,5 @@
 
-    export const debounce=(fn,delay=2000)=>{
+    export const debounce=(fn: CallableFunction,delay=2000)=>{
         let timeout;
         return (...args)=>{
           if (!!timeout)clearTimeout(timeout);
@@ -8,7 +8,7 @@
           },delay)
         }
     }
-    export const throttle=(fn,delay=2000)=>{
+    export const throttle=(fn: CallableFunction, delay=2000)=>{
         let record=0;
         return (...args)=>{
           const now = new Date().getTime();

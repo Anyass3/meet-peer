@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Nav from '../components/Nav.svelte';
+	import Nav from "../components/Nav.svelte";
 
 	export let segment: string;
 </script>
@@ -7,16 +7,13 @@
 <style>
 	main {
 		position: relative;
-		max-width: 56em;
-		background-color: white;
-		padding: 2em;
+		padding: 0.5em;
 		margin: 0 auto;
 		box-sizing: border-box;
 	}
 </style>
 
-<Nav {segment}/>
-
-<main class="d-flex justify-around flex-column">
-	<slot></slot>
+<main>
+	<Nav {segment} />
+	<slot />
 </main>
