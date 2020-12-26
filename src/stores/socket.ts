@@ -27,33 +27,33 @@ export default {
     joinMeet: ({ state, commit, dispatch, g }, roomId) => {
       const socket: Socket = io.io('/');
       dispatch('setSocket', socket);
-      const peers: any = get(state.peers);
       socket.on('connect', () => {
         if (get(state.enteredRoom)) {
           socket.emit('join-room', { roomId, name: get(state.userName) });
           //***/ userVideo.id = getId(userId());
           console.log('socket connected');
-          dispatch('setHasLeftWillingly', false);
+          commit('setHasLeftWillingly', false);
         } else dispatch('leaveMeet');
       });
 
       socket.on('room-full', () => {
         alert('Sorry room is already full');
-        dispatch('leaveMeet');
+        commit('leaveMeet');
       });
 
       // to get and setup peers already in the meet
       socket.on('joined-in-room', (joinedPeers) => {
         joinedPeers.forEach((i) => {
-          // let peer;
-          dispatch('createPeer', i.id).then((peer) => {
+          const peer = commit('createPeer', i.id);
+          state.peers.update((peers) =>
             peers.add({
               peerId: i.id,
               peer,
               name: i.name,
-            });
-          });
-          dispatch('setPeers', peers).then(() => dispatch('playVideos'));
+            })
+          );
+          dispatch('playVideos');
+          // dispatch('setPeers', peers).then(() => );
           console.log('joined-in-room', i.name || 'Anonymous');
           // createVideo(i.id, i.name);
         });
@@ -61,14 +61,16 @@ export default {
 
       // to get and setup a newly joined peer
       socket.on('user-joined', (payload) => {
-        dispatch('addPeer', payload.signal, payload.userId, payload.name).then((peer) => {
+        const peer = commit('addPeer', payload.signal, payload.userId, payload.name);
+        state.peers.update((peers) =>
           peers.add({
             peerId: payload.userId,
             peer,
             name: payload.name,
-          });
-          dispatch('setPeers', peers).then((q) => dispatch('playVideos'));
-        });
+          })
+        );
+        dispatch('playVideos');
+        // dispatch('setPeers', peers).then(() => );
         console.log('user-joined', payload.name || 'Anonymous');
         // console.log('user-joined','add')
         // createVideo(payload.userId, payload.name);
@@ -76,13 +78,14 @@ export default {
       socket.on('receiving-returned-signal', (payload) => {
         const item: any = get(g('getPeer', payload.id));
         item.peer.signal(payload.signal);
-        // playVideos()
+        dispatch('playVideos');
       });
       socket.on('peer-left', (id) => {
         dispatch('removePeer', id);
         console.log('a peer left');
       });
       socket.on('disconnect', () => {
+        const peers: any = get(state.peers);
         peers.forEach((p) => {
           dispatch('removePeer', p.peerId);
         });

@@ -35,11 +35,12 @@
 	} = store.getters;
 	// store.dispatch("setSimplePeer", SimplePeer);
 	const peers = getPeers();
-	let mic, cam;
+	let mic, cam, name;
 	$: mic = getAudioState();
 	$: cam = getCameraState();
-	$: console.log("peers", $peers);
-	let inMeet;
+	$: name = store.state.userName;
+	// $: console.log("peers", $peers);
+	let inMeet = false;
 	let id;
 	let socket;
 	$: socket = getSocket();
@@ -47,22 +48,31 @@
 	// initiator
 	const join_meet = () =>
 		throttle(() => {
-			store.dispatch("joinMeet");
+			store.dispatch("joinMeet").then(() => {
+				inMeet = true;
+				console.log("ENtered room yayay");
+			});
 			store.dispatch("setEnteredRoom", true);
 			//   $("#joinMeet").attr('disabled','').text="Connecting..."
 		}, 5000)();
 	const leave_meet = () =>
 		throttle(() => {
 			store.dispatch("setHasLeftWillingly", true);
-			store.dispatch("leaveMeet");
+			store.dispatch("leaveMeet").then(() => (inMeet = false));
 			store.dispatch("setEnteredRoom", false);
 		}, 5000)();
 
 	onMount(() => {
-		console.log("$socket", $socket);
+		// console.log("$socket", $socket);
 		store.dispatch("setUserVideo", document.querySelector("#userVideo"));
 		// console.log(SimplePeer);
-		store.dispatch("fakeStream");
+		store.dispatch("fakeStream").then(
+			() => join_meet()
+			// store
+			// 	.dispatch("toggleCamera")
+			// 	.then(() => store.dispatch("toggleAudio").then(() => 0))
+		);
+		// $peers.forEach((p) => console.log('srcObject',document.querySelector('peer'+p.peerId)['srcObject']));
 	});
 </script>
 
@@ -89,8 +99,8 @@
 		display: flex;
 		justify-content: center;
 		width: 100%;
-		top: 0;
-		position: absolute;
+		/* top: 0; */
+		/* position: absolute; */
 	}
 </style>
 
@@ -111,28 +121,31 @@
 	<!-- {#each [...$peers] as peer}{peer}{/each} -->
 	<div class="d-flex justify-evenly flex-wrap">
 		<Video
-			name="Abdoulie"
 			id="userVideo"
+			name={$name}
 			main_style="flex-basis:auto"
-			inMeet
+			{inMeet}
 			user />
 		{#each [...$peers] as peer (peer.peerId)}
 			{peer}
-			<Video id={'peer' + peer.peerId} />
+			<Video id={'peer' + peer.peerId} name={peer.name} />
 		{/each}
 	</div>
 	<div class="d-flex justify-center">
-		<button
-			id="joinMeet"
-			class="btn btn-success"
-			on:click={join_meet}
-			style="margin: 20px;">
-			Enter Meet Now
-		</button>
-		<button
-			id="leaveMeet"
-			on:click={leave_meet}
-			class="btn btn-danger">leave Meet</button>
+		{#if !inMeet}
+			<button
+				id="joinMeet"
+				class="btn btn-success"
+				on:click={join_meet}
+				style="margin: 20px;">
+				Enter Meet Now
+			</button>
+		{:else}
+			<button
+				id="leaveMeet"
+				on:click={leave_meet}
+				class="btn btn-danger">leave Meet</button>
+		{/if}
 	</div>
 </main>
 <JoinedMenu />

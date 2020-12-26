@@ -6,7 +6,6 @@ import { get } from 'svelte/store';
 export default {
   state: {
     peers: new Set(),
-    SimplePeer: null,
   },
   getters: {
     getPeer(state, id) {
@@ -20,16 +19,16 @@ export default {
       video.srcObject = vidStream;
       for (let prop in options) video[prop] = options[prop];
     },
-  },
-  actions: {
     // the new comer signals to old comers
-    createPeer: ({ state }, peerId) => {
+    createPeer: (state, peerId) => {
       //   const Peer: any = get(state.SimplePeer);
       const socket = get(state.socket);
+      const stream: MediaStream = get(state.stream);
+      console.log('CREATE STREAM', stream.getTracks());
       const peer = new window['SimplePeer']({
         initiator: true,
         trickle: false,
-        stream: get(state.stream),
+        stream,
       });
 
       peer.on('signal', (signal) => {
@@ -43,15 +42,19 @@ export default {
         });
         peer.signaledPeer = true;
       });
+      peer.on('stream', (s) => console.log('create)Scream is available from', peer));
       return peer;
     },
     // old comers waiting for signals
-    addPeer: ({ state }, incomingSignal, userID, name) => {
+    addPeer: (state, incomingSignal, userID, name) => {
       //   const Peer: any = get(state.SimplePeer);
+      const stream: MediaStream = get(state.stream);
+      document.getElementById('userVideo')['srcObject'] = stream;
+      console.log('ADD STREAM', stream.getTracks());
       const peer = new window['SimplePeer']({
         initiator: false,
         trickle: false,
-        stream: get(state.stream),
+        stream,
       });
       // peer will not signal now except after
       // being signaled by this user
@@ -61,17 +64,22 @@ export default {
         socket['emit']('returning-signal', { userID, signal, name });
       });
       peer.signal(incomingSignal);
+      peer.on('stream', (s) => console.log('add)Scream is available from', peer));
       return peer;
     },
+  },
+  actions: {
     playVideos: ({ state, commit, dispatch }) => {
       const peers: Set<any> = get(state.peers);
 
+      //   state.peers.subscribe((p) => (peers = p));
+
       //   console.log('playVideos', peers);
       peers.forEach((i) => {
-        console.log('i', i);
+        console.log('i', i.peer);
         if (!i.streaming)
           i.peer.on('stream', (stream) => {
-            console.log('palyer', stream);
+            console.log('play', i.peer, stream);
             i.streaming = true;
             if (stream.getVideoTracks()[0].muted) {
               stream.getVideoTracks()[0].onunmute = () => {
@@ -83,7 +91,7 @@ export default {
                 new MediaStream([get(state.fakeVideoStream), stream.getAudioTracks()[0]]),
                 { muted: false }
               );
-            } else dispatch('setSakeVideoStream', i.peerId, stream, { muted: false });
+            } else dispatch('setFakeVideoStream', i.peerId, stream, { muted: false });
           });
       });
     },
@@ -92,8 +100,8 @@ export default {
       // console.log(peerVideo)
       peerVideo.srcObject = null;
       const peers: Set<any> = get(state.peers);
-      const peer = g('getPeer', id);
-      console.log(peer, id, peerVideo);
+      const peer = Array.from(peers).find((i) => i['peerId'] === id); //g('getPeer', id);
+      //   console.log(peer, peers, id, peerVideo);
       peer.peer.destroy(); //destroy disconnected peer
       peers.delete(peer);
       dispatch('setPeers', peers);
