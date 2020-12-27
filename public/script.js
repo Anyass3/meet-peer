@@ -72,6 +72,7 @@ fakeStream = () => {
   window.fakeVideoStream = fakeVideo();
   window.stream = fakeVideoAudio();
   userVideo = createVideo();
+  userVideo.prop({ srcObject: stream, muted: true });
 };
 
 startStreaming = ({ video = false, audio = false } = {}) => {
@@ -81,16 +82,17 @@ startStreaming = ({ video = false, audio = false } = {}) => {
     navigator.mediaDevices.getUserMedia({ video, audio }).then((newStream) => {
       if (!startedVideoStream) startedVideoStream = !!video;
       if (!startedAudioStream) startedAudioStream = !!audio;
+      // userVideo.prop({ srcObject: stream, muted: true });
       if (audio && video) {
-        window.stream = stream;
-        userVideo.prop({ srcObject: stream, muted: true });
+        // window.stream = stream;
+        // userVideo.prop({ srcObject: stream, muted: true });
       } else if (video) {
         peers.forEach((p) => {
           p.peer.replaceTrack(stream.getVideoTracks()[0], newStream.getVideoTracks()[0], stream);
         });
         stream.removeTrack(stream.getVideoTracks()[0]);
         stream.addTrack(newStream.getVideoTracks()[0]);
-        userVideo.prop({ srcObject: stream, muted: true });
+        // userVideo.prop({ srcObject: stream, muted: true });
       } else {
         peers.forEach((p) => {
           p.peer.replaceTrack(stream.getAudioTracks()[0], newStream.getAudioTracks()[0], stream);
@@ -162,24 +164,13 @@ createPeer = (peerID) => {
   });
 
   peer.on('signal', (signal) => {
-    // console.log('signaling-peer', signal)
-    // if(!peer.signaledPeer)
     socket.emit('signaling-peer', {
       peerID,
       signal,
       userID: userID(),
       name: $('#p-name-input').val,
     });
-
-    peer.signaledPeer = true;
   });
-  // peer.on('stream', stream=>{
-  //     initVideo(userID,stream)
-  // })
-  // socket.on('newUser', signal => {
-  //     peer.signal(signal)
-  //     console.log('newUser entered',signal)
-  // })
   return peer;
 };
 
@@ -187,24 +178,16 @@ createPeer = (peerID) => {
 addPeer = (incomingSignal, userID, name) => {
   const peer = new SimplePeer({
     initiator: false,
-    trickle: false,
+    trickle: true,
     stream: stream,
     config: iceConfig,
   });
   // peer will not signal now except after
   // being signaled by this user
   peer.on('signal', (signal) => {
-    // console.log('signal',signal)
+    console.log('signal:)', signal);
     socket.emit('returning-signal', { userID, signal, name });
   });
-  // peer.on('stream', stream=>{
-  //     console.log(stream)
-  //     initVideo(userID,stream)
-  // })
-  // socket.on('newUser', signal => {
-  //     peer.signal(signal)
-  //     console.log('newUser entered',signal)
-  // })
   peer.signal(incomingSignal);
   return peer;
 };
@@ -264,6 +247,7 @@ joinMeet = () => {
     playVideos();
   });
   socket.on('receiving-returned-signal', (payload) => {
+    console.log('receiving-returned-signal');
     const item = peers.get(payload.id);
     item.peer.signal(payload.signal);
     // playVideos()
