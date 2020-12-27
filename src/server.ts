@@ -1,11 +1,6 @@
 import sirv from 'sirv';
-// import express from "express";
 import compression from 'compression';
 import * as sapper from '@sapper/server';
-import { emit } from 'process';
-// import http from 'http'
-// import * as socketio from 'socket.io';
-// import polka from 'polka';
 
 const { PORT, NODE_ENV } = process.env;
 const dev = NODE_ENV === 'development';
@@ -14,13 +9,11 @@ const express = require('express');
 
 const app = express();
 
-// const App = require("./dist/App.js");
 const server = require('http').Server(app);
 
 const io = require('socket.io')(server);
 
-app // You can also use Express
-
+app
   .get('/new-room', (req, res) => {
     res.redirect(`room/${uid()}`);
     console.log('redirected to new room');
@@ -28,6 +21,7 @@ app // You can also use Express
   .use(compression({ threshold: 0 }), sirv('static', { dev }), sapper.middleware());
 
 server.listen(PORT);
+
 const { v4: uid } = require('uuid');
 
 const MAX_PEERS = 100; // this is the max number allowed for chat room.
@@ -60,7 +54,7 @@ io.on('connection', (socket) => {
     // console.log(userId)
   });
   socket.on('signaling-peer', (payload) => {
-    // console.log('signaling-peer')
+    // console.log('signaling-peer');
     io.to(payload.peerId).emit('user-joined', {
       signal: payload.signal,
       userId: payload.userId,
@@ -68,7 +62,7 @@ io.on('connection', (socket) => {
     });
   });
   socket.on('returning-signal', (payload) => {
-    // console.log('returning-signal')
+    // console.log('returning-signal', payload.userId);
     io.to(payload.userId).emit('receiving-returned-signal', {
       signal: payload.signal,
       id: socket.id,
@@ -84,20 +78,4 @@ io.on('connection', (socket) => {
       Rooms[roomId].forEach((s) => io.to(s.id).emit('peer-left', socket.id));
     }
   });
-  console.log('new socket connection');
 });
-
-// app.get('/', (req, res) =>{
-//     res.render('home')
-// })
-
-// app.get('/new-room',(req, res)=>{
-//     console.log('creating a new room')
-//     res.redirect(`room/${uid()}`)
-//     console.log('redirected to new room')
-// })
-
-// app.get('/room/:room',(req, res)=>{
-//     res.render('room',{roomId: req.params.room})
-//     res.end()
-// })

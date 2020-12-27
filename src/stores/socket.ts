@@ -1,19 +1,19 @@
-// import { Socket } from 'socket.io'
 import io, { Socket } from 'socket.io-client';
-// import type { Store } from './interface'
 import { get } from 'svelte/store';
 
 export default {
   state: {
     socket: null,
-    // socket_id: '',
-    // user_id: '',
+    joinRequest: false,
     enteredRoom: false,
+    reconnecting: false,
+    hasLeftWillingly: false,
+    userName: '',
   },
   getters: {
     getUserId: (state) => {
       const socket: Socket = get(state.socket);
-      return socket ? socket['id'] : '';
+      return socket ? socket['id'] : 'userVideo';
     },
     getUserVideoId: (state) => {
       const _this: any = this;
@@ -28,9 +28,8 @@ export default {
       const socket: Socket = io.io('/');
       dispatch('setSocket', socket);
       socket.on('connect', () => {
-        if (get(state.enteredRoom)) {
+        if (get(state.joinRequest)) {
           socket.emit('join-room', { roomId, name: get(state.userName) });
-          //***/ userVideo.id = getId(userId());
           console.log('socket connected');
           commit('setHasLeftWillingly', false);
         } else dispatch('leaveMeet');
@@ -38,11 +37,14 @@ export default {
 
       socket.on('room-full', () => {
         alert('Sorry room is already full');
-        commit('leaveMeet');
+        commit('setJoinRequest', false);
+        dispatch('setHasLeftWillingly', true); //:)sorry
+        dispatch('leaveMeet');
       });
 
       // to get and setup peers already in the meet
       socket.on('joined-in-room', (joinedPeers) => {
+        dispatch('setEnteredRoom', true);
         joinedPeers.forEach((i) => {
           const peer = commit('createPeer', i.id);
           state.peers.update((peers) =>
@@ -53,9 +55,6 @@ export default {
             })
           );
           dispatch('playVideos');
-          // dispatch('setPeers', peers).then(() => );
-          console.log('joined-in-room', i.name || 'Anonymous');
-          // createVideo(i.id, i.name);
         });
       });
 
@@ -70,37 +69,40 @@ export default {
           })
         );
         dispatch('playVideos');
-        // dispatch('setPeers', peers).then(() => );
-        console.log('user-joined', payload.name || 'Anonymous');
-        // console.log('user-joined','add')
-        // createVideo(payload.userId, payload.name);
       });
       socket.on('receiving-returned-signal', (payload) => {
-        const item: any = get(g('getPeer', payload.id));
+        const peers: Set<any> = get(state.peers);
+        const item = Array.from(peers).find((i) => i['peerId'] === payload.id);
+        // const item: any = get(g('getPeer', payload.id));
         item.peer.signal(payload.signal);
-        dispatch('playVideos');
       });
       socket.on('peer-left', (id) => {
         dispatch('removePeer', id);
         console.log('a peer left');
       });
       socket.on('disconnect', () => {
+        console.log('socket disconnected');
         const peers: any = get(state.peers);
         peers.forEach((p) => {
           dispatch('removePeer', p.peerId);
         });
         peers.clear();
         if (!get(state.hasLeftWillingly)) {
+          dispatch('setReconnecting', true);
+          console.log('Has not left willingly');
           // $('#leave').parent.$('p').show();
           setTimeout(() => {
             if (socket.disconnected) {
-              // $('#leave').parent.$('p').hide();
-              // $('#leave').$$.click();
+              console.log('socket.disconnected)');
+              commit('setJoinedRequest', false);
+              dispatch('setReconnecting', false).then(() =>
+                dispatch('leaveMeet').then(() => dispatch('setEnteredRoom', false))
+              );
             }
-          }, 20000);
+          }, 50000);
         }
 
-        console.log('socket disconnected');
+        console.log('socket disconnected', !get(state.hasLeftWillingly));
       });
     },
     leaveMeet: ({ state }) => {

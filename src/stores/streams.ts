@@ -1,4 +1,3 @@
-// import type { Stream } from 'stream';
 import { get } from 'svelte/store';
 
 export default {
@@ -6,31 +5,17 @@ export default {
     startedVideoStream: false,
     startedAudioStream: false,
     cameraState: 'off',
-    audioState: 'off',
+    micState: 'off',
     stream: null,
     fakeVideoStream: null,
     userVideo: null,
-    userName: '',
-    hasLeftWillingly: false,
   },
-
-  getters: {},
-
   mutations: {
     toggleCameraState(state) {
       state.cameraState.set(get(state.cameraState) === 'on' ? 'off' : 'on');
     },
-    toggleAudioState(state) {
-      state.audioState.set(get(state.audioState) === 'on' ? 'off' : 'on');
-    },
-    setStream(state, stream) {
-      state.stream.set(stream);
-    },
-    setStreamingVideo(state, val) {
-      state.startedVideoStream.set(val);
-    },
-    setStreamingAudio(state, val) {
-      state.startedAudioStream.set(val);
+    toggleMicState(state) {
+      state.micState.set(get(state.micState) === 'on' ? 'off' : 'on');
     },
     setUserVideoProp(state, props: object) {
       const video: HTMLVideoElement = get(state.userVideo);
@@ -42,8 +27,8 @@ export default {
     toggleCamera({ state, dispatch }) {
       dispatch('enableCamera', get(state.cameraState) === 'off');
     },
-    toggleAudio({ state, dispatch }) {
-      dispatch('enableAudio', get(state.audioState) === 'off');
+    toggleMic({ state, dispatch }) {
+      dispatch('enableMic', get(state.micState) === 'off');
     },
     fakeStream: ({ commit }) => {
       let fakeAudio = () => {
@@ -67,7 +52,7 @@ export default {
       // userVideo = createVideo();
       commit('setUserVideoProp', { srcObject: fake_stream, muted: true });
     },
-    startStreaming: ({ state, commit, dispatch }, { video = false, audio = false } = {}) => {
+    startStreaming: ({ state, dispatch }, { video = false, audio = false } = {}) => {
       if (video === false && audio === false) return;
 
       try {
@@ -75,21 +60,14 @@ export default {
           if (!get(state.startedVideoStream)) dispatch('setStartedVideoStream', !!video);
           if (!get(state.startedAudioStream)) dispatch('setStartedAudioStream', !!audio);
           let stream: MediaStream = get(state.stream);
-          // state.stream.subscribe((stream) => {
-          // });
-          // const peers: Set<any> = get(state.peers);
           if (video) {
             state.peers.subscribe((peers) =>
               peers.forEach((p) => {
-                p.peer.removeTrack(stream.getVideoTracks()[0], stream);
-                p.peer.addTrack(newStream.getVideoTracks()[0], newStream);
-                console.log('replacing peer videotrack', p.peer);
-                // p.peer.replaceTrack(
-                //   stream.getVideoTracks()[0],
-                //   newStream.getVideoTracks()[0],
-                //   stream
-                // );
-                // console.log(p.peer);
+                p.peer.replaceTrack(
+                  stream.getVideoTracks()[0],
+                  newStream.getVideoTracks()[0],
+                  stream
+                );
               })
             )();
             stream.removeTrack(stream.getVideoTracks()[0]);
@@ -97,39 +75,30 @@ export default {
           } else {
             state.peers.subscribe((peers) =>
               peers.forEach((p) => {
-                p.peer.removeTrack(stream.getAudioTracks()[0], stream);
-                p.peer.addTrack(newStream.getAudioTracks()[0], newStream);
-                console.log('replacing peer audiotrack', p.peer);
-                // p.peer.replaceTrack(
-                //   stream.getAudioTracks()[0],
-                //   newStream.getAudioTracks()[0],
-                //   stream
-                // );
+                p.peer.replaceTrack(
+                  stream.getAudioTracks()[0],
+                  newStream.getAudioTracks()[0],
+                  stream
+                );
               })
             )();
             stream.removeTrack(stream.getAudioTracks()[0]);
             stream.addTrack(newStream.getAudioTracks()[0]);
           }
-          // dispatch('setStream', stream).then((e) =>
-          //   console.log('stream===get(state.stream)$$', stream === get(state.stream))
-          // );
-          // console.log('sdvgsd', stream.getTracks());
-          // commit('setUserVideoProp', { srcObject: stream, muted: true });
-          // commit('setStream', stream);
         });
       } catch (err) {
         console.log(err.name, err.message);
       }
     },
-    enableAudio: ({ state, dispatch, commit }, v = true) => {
-      if (!get(state.startedAudioStream)) dispatch('startStreaming', { audio: true });
+    async enableMic({ state, dispatch, commit }, v = true) {
+      if (!get(state.startedAudioStream)) await dispatch('startStreaming', { mic: true });
       get(state.stream)
         ['getAudioTracks']()
         .forEach((track) => (track.enabled = v));
-      commit('setAudioState', v ? 'on' : 'off');
+      commit('setMicState', v ? 'on' : 'off');
     },
-    enableCamera: ({ state, dispatch, commit }, v = true) => {
-      if (!get(state.startedVideoStream)) dispatch('startStreaming', { video: true });
+    async enableCamera({ state, dispatch, commit }, v = true) {
+      if (!get(state.startedVideoStream)) await dispatch('startStreaming', { video: true });
       get(state.stream)
         ['getVideoTracks']()
         .forEach((track) => (track.enabled = v));

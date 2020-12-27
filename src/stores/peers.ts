@@ -1,11 +1,19 @@
 import { get } from 'svelte/store';
-// import Peer from 'simple-peer';
-// const Peer = require('simple-peer');
-// let Peer: any;
-// let SimplePeer;
+import type { Socket } from 'socket.io-client';
 export default {
+  default: { iceConfig: false },
   state: {
     peers: new Set(),
+    iceConfig: {
+      iceServers: [
+        { urls: 'stun:134.209.28.98:3478' },
+        {
+          urls: 'turn:134.209.28.98:3478',
+          username: 'anyass',
+          credential: 'te8V62xqLQ2GOEibYHCsRBnNE6M=',
+        },
+      ],
+    },
   },
   getters: {
     getPeer(state, id) {
@@ -21,70 +29,54 @@ export default {
     },
     // the new comer signals to old comers
     createPeer: (state, peerId) => {
-      //   const Peer: any = get(state.SimplePeer);
-      const socket = get(state.socket);
       const stream: MediaStream = get(state.stream);
-      console.log('CREATE STREAM', stream.getTracks());
       const peer = new window['SimplePeer']({
         initiator: true,
         trickle: false,
         stream,
+        config: get(state.iceConfig),
       });
 
       peer.on('signal', (signal) => {
-        // console.log('signaling-peer', signal);
-        // console.log('socket', socket, state.socket);
-        socket['emit']('signaling-peer', {
+        const socket: Socket = get(state.socket);
+        socket.emit('signaling-peer', {
           peerId,
           signal,
           userId: socket['id'],
           name: get(state.userName),
         });
-        peer.signaledPeer = true;
       });
-      peer.on('stream', (s) => console.log('create)Scream is available from', peer));
       return peer;
     },
     // old comers waiting for signals
-    addPeer: (state, incomingSignal, userID, name) => {
-      //   const Peer: any = get(state.SimplePeer);
+    addPeer: (state, incomingSignal, userId, name) => {
       const stream: MediaStream = get(state.stream);
-      document.getElementById('userVideo')['srcObject'] = stream;
-      console.log('ADD STREAM', stream.getTracks());
       const peer = new window['SimplePeer']({
         initiator: false,
-        trickle: false,
+        trickle: true,
         stream,
+        config: get(state.iceConfig),
       });
       // peer will not signal now except after
       // being signaled by this user
-      const socket = get(state.socket);
       peer.on('signal', (signal) => {
-        // console.log('signal', signal);
-        socket['emit']('returning-signal', { userID, signal, name });
+        const socket: Socket = get(state.socket);
+        socket.emit('returning-signal', { userId, signal, name });
       });
       peer.signal(incomingSignal);
-      peer.on('stream', (s) => console.log('add)Scream is available from', peer));
       return peer;
     },
   },
   actions: {
     playVideos: ({ state, commit, dispatch }) => {
       const peers: Set<any> = get(state.peers);
-
-      //   state.peers.subscribe((p) => (peers = p));
-
-      //   console.log('playVideos', peers);
       peers.forEach((i) => {
-        console.log('i', i.peer);
         if (!i.streaming)
           i.peer.on('stream', (stream) => {
-            console.log('play', i.peer, stream);
             i.streaming = true;
             if (stream.getVideoTracks()[0].muted) {
-              stream.getVideoTracks()[0].onunmute = () => {
+              stream.getVideoTracks()[0].onunmute = () =>
                 commit('setPeerVideo', i.peerId, stream, { muted: false });
-              };
               commit(
                 'setPeerVideo',
                 i.peerId,
@@ -96,13 +88,8 @@ export default {
       });
     },
     removePeer: ({ state, g, dispatch }, id) => {
-      const peerVideo: any = document.getElementById('peer' + id);
-      // console.log(peerVideo)
-      peerVideo.srcObject = null;
       const peers: Set<any> = get(state.peers);
-      const peer = Array.from(peers).find((i) => i['peerId'] === id); //g('getPeer', id);
-      //   console.log(peer, peers, id, peerVideo);
-      peer.peer.destroy(); //destroy disconnected peer
+      const peer = Array.from(peers).find((i) => i['peerId'] === id);
       peers.delete(peer);
       dispatch('setPeers', peers);
     },

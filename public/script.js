@@ -83,14 +83,14 @@ startStreaming = ({ video = false, audio = false } = {}) => {
       if (!startedAudioStream) startedAudioStream = !!audio;
       if (audio && video) {
         window.stream = stream;
-        // userVideo.prop({ srcObject: stream, muted: true });
+        userVideo.prop({ srcObject: stream, muted: true });
       } else if (video) {
         peers.forEach((p) => {
           p.peer.replaceTrack(stream.getVideoTracks()[0], newStream.getVideoTracks()[0], stream);
         });
         stream.removeTrack(stream.getVideoTracks()[0]);
         stream.addTrack(newStream.getVideoTracks()[0]);
-        // userVideo.prop({ srcObject: stream, muted: true });
+        userVideo.prop({ srcObject: stream, muted: true });
       } else {
         peers.forEach((p) => {
           p.peer.replaceTrack(stream.getAudioTracks()[0], newStream.getAudioTracks()[0], stream);

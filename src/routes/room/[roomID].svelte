@@ -25,54 +25,48 @@
 	import Video from "../../components/video.svelte";
 	import JoinedMenu from "../../components/joinedMenu.svelte";
 	import { throttle } from "../../utils";
-	// import { log } from "console";
 	const {
-		getCameraState,
-		getAudioState,
 		getUserId,
 		getPeers,
-		getSocket,
+		getEnteredRoom,
+		getJoinRequest,
+		getUserName,
+		getReconnecting,
 	} = store.getters;
-	// store.dispatch("setSimplePeer", SimplePeer);
-	const peers = getPeers();
-	let mic, cam, name;
-	$: mic = getAudioState();
-	$: cam = getCameraState();
-	$: name = store.state.userName;
-	// $: console.log("peers", $peers);
-	let inMeet = false;
-	let id;
-	let socket;
-	$: socket = getSocket();
-	// store.mutations.toggleCameraState();
+
+	const peers = getPeers(),
+		inMeet = getEnteredRoom(),
+		name = getUserName(),
+		reconnecting = getReconnecting(),
+		sendingJoinRequest = getJoinRequest();
+
+	let id,
+		join_meet_text = "Enter Meet Now";
+	$: join_meet_text = $sendingJoinRequest
+		? "Connecting..."
+		: "Enter Meet Now";
+	$: id = getUserId();
+
 	// initiator
 	const join_meet = () =>
 		throttle(() => {
-			store.dispatch("joinMeet").then(() => {
-				inMeet = true;
-				console.log("ENtered room yayay");
-			});
-			store.dispatch("setEnteredRoom", true);
+			store.commit("setJoinRequest", true);
+			store.dispatch("joinMeet");
+
 			//   $("#joinMeet").attr('disabled','').text="Connecting..."
-		}, 5000)();
-	const leave_meet = () =>
-		throttle(() => {
-			store.dispatch("setHasLeftWillingly", true);
-			store.dispatch("leaveMeet").then(() => (inMeet = false));
-			store.dispatch("setEnteredRoom", false);
 		}, 5000)();
 
 	onMount(() => {
-		// console.log("$socket", $socket);
-		store.dispatch("setUserVideo", document.querySelector("#userVideo"));
-		// console.log(SimplePeer);
+		store.dispatch(
+			"setUserVideo",
+			document.querySelector("[aria-label='userVideo']")
+		);
 		store.dispatch("fakeStream").then(
-			() => join_meet()
+			() => 0 //join_meet()
 			// store
 			// 	.dispatch("toggleCamera")
-			// 	.then(() => store.dispatch("toggleAudio").then(() => 0))
+			// 	.then(() => store.dispatch("toggleMic").then(() => 0))
 		);
-		// $peers.forEach((p) => console.log('srcObject',document.querySelector('peer'+p.peerId)['srcObject']));
 	});
 </script>
 
@@ -81,71 +75,50 @@
 		background: aliceblue;
 	}
 
-	:global(button):hover {
-		text-decoration: none;
-		transform: scale(1.15);
-	}
 	:global(button):active {
-		transform: scale(1);
+		transform: scale(0.9);
 		transition: none;
-	}
-	#leaveMeet {
-		margin: auto;
-		border-radius: 10px;
-		background-color: #ffebbe;
-		color: #d50000;
-	}
-	#joinMeet {
-		display: flex;
-		justify-content: center;
-		width: 100%;
-		/* top: 0; */
-		/* position: absolute; */
 	}
 </style>
 
 <svelte:head>
-	<script src="/simplepeer.min.js">
+	<script defer src="/simplepeer.min.js">
 	</script>
 </svelte:head>
 
 <div style="display:flex;justify-content: center;">
 	<h1 style="text-align: center;">Peer Meet Room</h1>
-	<div>
-		<button id="leaveMeet" class="d-none">leave Meet</button>
-		<p style="color:red" class="d-none">reconnecting...</p>
-	</div>
+	{#if $reconnecting}
+		<div>
+			<p style="color:red">reconnecting...</p>
+		</div>
+	{/if}
 </div>
-<main class="d-flex justify-between flex-column  bg-primary">
-	<p>mic:{$mic}||cam:{$cam}</p>
-	<!-- {#each [...$peers] as peer}{peer}{/each} -->
-	<div class="d-flex justify-evenly flex-wrap">
+<main class="d-flex justify-around flex-wrap  bg-primary">
+	<!-- <p>mic:{$mic}||cam:{$cam}</p> -->
+	<div class="d-flex justify-evenly flex-wrap mb-0">
 		<Video
-			id="userVideo"
+			{id}
 			name={$name}
 			main_style="flex-basis:auto"
-			{inMeet}
+			inMeet={$inMeet}
 			user />
 		{#each [...$peers] as peer (peer.peerId)}
-			{peer}
 			<Video id={'peer' + peer.peerId} name={peer.name} />
 		{/each}
 	</div>
-	<div class="d-flex justify-center">
-		{#if !inMeet}
+	{#if !$inMeet}
+		<div class="">
 			<button
 				id="joinMeet"
-				class="btn btn-success"
+				class="btn btn-success w-100"
 				on:click={join_meet}
 				style="margin: 20px;">
-				Enter Meet Now
+				{join_meet_text}
 			</button>
-		{:else}
-			<button
-				id="leaveMeet"
-				on:click={leave_meet}
-				class="btn btn-danger">leave Meet</button>
-		{/if}
-	</div>
+		</div>
+	{/if}
 </main>
-<JoinedMenu />
+{#if $inMeet}
+	<JoinedMenu />
+{/if}
