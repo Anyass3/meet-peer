@@ -156,7 +156,6 @@ iceConfig = {
   iceServers: [
     { urls: 'stun:134.209.28.98:3478' },
     { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:global.stun.twilio.com:3478?transport=udp' },
     {
       urls: 'turn:134.209.28.98:3478',
       username: 'anyass',
