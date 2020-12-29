@@ -56,7 +56,7 @@ playVideos = () => {
             });
           };
         } else {
-          console.log('Video not muted');
+          // console.log('Video not muted');
           initVideo(i.peerID, stream, { muted: false });
         }
       });
@@ -181,7 +181,7 @@ createPeer = (peerID, name) => {
       name: $('#p-name-input').val,
     });
 
-    console.log('signaling peer=>id', peerID, signal);
+    // console.log('signaling peer=>id', peerID, signal);
   });
   peers.add({
     peerID,
@@ -206,21 +206,13 @@ addPeer = (incomingSignal, peerID, name) => {
   // being signaled by this user
   peer.on('signal', (signal) => {
     socket.emit('returning-signal', { peerID, signal, name });
-    console.log('replying to a new signal id=>', peerID, signal);
+    // console.log('replying to a new signal id=>', peerID, signal);
   });
   peers.add({
     peerID,
     peer,
     name,
   });
-  // peer.on('stream', stream=>{
-  //     console.log(stream)
-  //     initVideo(userID,stream)
-  // })
-  // socket.on('newUser', signal => {
-  //     peer.signal(signal)
-  //     console.log('newUser entered',signal)
-  // })
   peer.signal(incomingSignal);
 };
 
@@ -257,7 +249,7 @@ joinMeet = () => {
       createPeer(p.id, p.name);
       createVideo(p.id, p.name);
       playVideos();
-      console.log('connected to user', p.name);
+      // console.log('connected to user', p.name);
     });
   });
 
@@ -272,12 +264,12 @@ joinMeet = () => {
   socket.on('receiving-candidate', (payload) => {
     const item = peers.get(payload.peerID);
     item.peer.signal(payload.signal);
-    console.log('received-candidate', payload.signal);
+    // console.log('received-candidate', payload.signal);
   });
   socket.on('receiving-returned-signal', (payload) => {
     const item = peers.get(payload.id);
     item.peer.signal(payload.signal);
-    console.log('received-returned-signal', payload.signal);
+    // console.log('received-returned-signal', payload.signal);
   });
   socket.on('peer-left', (id) => {
     removePeer(id);
@@ -290,10 +282,8 @@ joinMeet = () => {
     peers.clear();
     console.log('hasLeftWillingly', hasLeftWillingly);
     if (!hasLeftWillingly) {
-      console.log('hehehehh');
       $('#leave').parent.$('p').show();
       setTimeout(() => {
-        console.log('socket hmmm');
         if (socket.disconnected) {
           $('#leave').parent.$('p').hide();
           $('#leave').$$.click();
