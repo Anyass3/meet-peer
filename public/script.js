@@ -41,13 +41,24 @@ playVideos = () => {
       i.peer.on('stream', (stream) => {
         i.streaming = true;
         if (stream.getVideoTracks()[0].muted) {
-          stream.getVideoTracks()[0].onunmute = () => {
-            initVideo(i.peerID, stream, { muted: false });
-          };
           initVideo(i.peerID, new MediaStream([fakeVideoStream, stream.getAudioTracks()[0]]), {
             muted: false,
           });
-        } else initVideo(i.peerID, stream, { muted: false });
+          // console.log('Video is muted');
+          stream.getVideoTracks()[0].onunmute = () => {
+            // console.log('Video has unmuted');
+            initVideo(i.peerID, stream, { muted: false });
+          };
+          stream.getVideoTracks()[0].onmute = () => {
+            // console.log('video MUTED Again');
+            initVideo(i.peerID, new MediaStream([fakeVideoStream, stream.getAudioTracks()[0]]), {
+              muted: false,
+            });
+          };
+        } else {
+          console.log('Video not muted');
+          initVideo(i.peerID, stream, { muted: false });
+        }
       });
   });
 };
@@ -63,6 +74,7 @@ fakeStream = () => {
 
   let fakeVideo = ({ width = 640, height = 480 } = {}) => {
     let canvas = document.createElement('canvas');
+
     canvas.getContext('2d').fillRect(0, 0, width, height);
     let stream = canvas.captureStream();
     return Object.assign(stream.getVideoTracks()[0], { enabled: false });
@@ -84,7 +96,7 @@ startStreaming = ({ video = false, audio = false } = {}) => {
       if (!startedAudioStream) startedAudioStream = !!audio;
       // userVideo.prop({ srcObject: stream, muted: true });
       if (audio && video) {
-        // window.stream = stream;
+        window.stream = stream;
         // userVideo.prop({ srcObject: stream, muted: true });
       } else if (video) {
         peers.forEach((p) => {
@@ -110,11 +122,7 @@ startCamera = (video = true) => {
   startStreaming({ video });
 };
 shareScreen = () => {
-  // startStreaming({video:{
-  //     mandatory:{
-  //         chromeMediaSource: 'screen'
-  //     }
-  // }})
+  // please share your screen
 };
 startAudio = (audio = true) => {
   startStreaming({ audio });
@@ -164,18 +172,28 @@ createPeer = (peerID) => {
   });
 
   peer.on('signal', (signal) => {
+    // if(!peer.signaledPeer)
     socket.emit('signaling-peer', {
       peerID,
       signal,
       userID: userID(),
       name: $('#p-name-input').val,
     });
+
+    console.log('signaling peer=>id', peerID, signal);
   });
+  // peer.on('stream', stream=>{
+  //     initVideo(userID,stream)
+  // })
+  // socket.on('newUser', signal => {
+  //     peer.signal(signal)
+  //     console.log('newUser entered',signal)
+  // })
   return peer;
 };
 
 // old comers waiting for signals
-addPeer = (incomingSignal, userID, name) => {
+addPeer = (incomingSignal, peerID, name) => {
   const peer = new SimplePeer({
     initiator: false,
     trickle: true,
@@ -185,9 +203,17 @@ addPeer = (incomingSignal, userID, name) => {
   // peer will not signal now except after
   // being signaled by this user
   peer.on('signal', (signal) => {
-    console.log('signal:)', signal);
-    socket.emit('returning-signal', { userID, signal, name });
+    socket.emit('returning-signal', { peerID, signal, name });
+    console.log('replying to a new signal id=>', peerID, signal);
   });
+  // peer.on('stream', stream=>{
+  //     console.log(stream)
+  //     initVideo(userID,stream)
+  // })
+  // socket.on('newUser', signal => {
+  //     peer.signal(signal)
+  //     console.log('newUser entered',signal)
+  // })
   peer.signal(incomingSignal);
   return peer;
 };
@@ -220,36 +246,37 @@ joinMeet = () => {
 
   // to get and setup peers already in the meet
   socket.on('joined-in-room', (joinedPeers) => {
-    joinedPeers.forEach((i) => {
-      const peer = createPeer(i.id);
+    console.log(`${joinedPeers.length} peers are already in meet`);
+    joinedPeers.forEach((p) => {
+      const peer = createPeer(p.id);
       peers.add({
-        peerID: i.id,
+        peerID: p.id,
         peer,
-        name: i.name,
+        name: p.name,
       });
-      console.log('joined-in-room', i.name);
-      createVideo(i.id, i.name);
+      createVideo(p.id, p.name);
       playVideos();
+      console.log('connected to user', p.name);
     });
   });
 
   // to get and setup a newly joined peer
   socket.on('user-joined', (payload) => {
-    const peer = addPeer(payload.signal, payload.userID, payload.name);
+    const peer = addPeer(payload.signal, payload.peerID, payload.name);
     peers.add({
-      peerID: payload.userID,
+      peerID: payload.peerID,
       peer,
       name: payload.name,
     });
     console.log('user-joined', payload.name);
     // console.log('user-joined','add')
-    createVideo(payload.userID, payload.name);
+    createVideo(payload.peerID, payload.name);
     playVideos();
   });
   socket.on('receiving-returned-signal', (payload) => {
-    console.log('receiving-returned-signal');
     const item = peers.get(payload.id);
     item.peer.signal(payload.signal);
+    console.log('received-returned-signal', payload.signal);
     // playVideos()
   });
   socket.on('peer-left', (id) => {

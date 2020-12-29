@@ -37,7 +37,6 @@ app.get('/', (req, res) => {
 });
 
 app.get('/new-room', (req, res) => {
-  console.log('about creating to a new room');
   res.redirect(`room/${uid()}`);
   console.log('creating to a new room');
 });
@@ -73,13 +72,13 @@ io.on('connection', (socket) => {
     // console.log('signaling-peer')
     io.to(payload.peerID).emit('user-joined', {
       signal: payload.signal,
-      userID: payload.userID,
+      peerID: payload.userID,
       name: payload.name,
     });
   });
   socket.on('returning-signal', (payload) => {
-    console.log('returning-signal', payload.userID);
-    io.to(payload.userID).emit('receiving-returned-signal', {
+    // console.log('returning-signal', payload.userID);
+    io.to(payload.peerID).emit('receiving-returned-signal', {
       signal: payload.signal,
       id: socket.id,
       name: payload.name,
@@ -94,7 +93,7 @@ io.on('connection', (socket) => {
       Rooms[roomID].forEach((s) => io.to(s.id).emit('peer-left', socket.id));
     }
   });
-  console.log('new socket connection');
+  // console.log('new socket connection');
 });
 
 const port = process.env.PORT || 3000;
