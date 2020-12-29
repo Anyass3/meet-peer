@@ -29,9 +29,9 @@ createVideo = (id, name) => {
 };
 
 initVideo = (id, vidStream, options = {}) => {
-  let v = $.id(getID(id))
-    .prop({ srcObject: vidStream, ...options })
-    .attr({ playsInline: '', autoplay: '' });
+  let v = $.id(getID(id));
+  if (!v.$$) return;
+  v.prop({ srcObject: vidStream, ...options }).attr({ playsInline: '', autoplay: '' });
   if (!('srcObject' in v.$$)) v.attr('src', URL.createObjectURL(vidStream));
 };
 
@@ -44,13 +44,13 @@ playVideos = () => {
           initVideo(i.peerID, new MediaStream([fakeVideoStream, stream.getAudioTracks()[0]]), {
             muted: false,
           });
-          // console.log('Video is muted');
+          // console.log('VidinitVideoeo is muted');
           stream.getVideoTracks()[0].onunmute = () => {
             // console.log('Video has unmuted');
             initVideo(i.peerID, stream, { muted: false });
           };
           stream.getVideoTracks()[0].onmute = () => {
-            // console.log('video MUTED Again');
+            // console.log('video MUTED Again', i.peerID);
             initVideo(i.peerID, new MediaStream([fakeVideoStream, stream.getAudioTracks()[0]]), {
               muted: false,
             });
@@ -163,10 +163,10 @@ iceConfig = {
   ],
 };
 // the new comer signals to old comers
-createPeer = (peerID) => {
+createPeer = (peerID, name) => {
   const peer = new SimplePeer({
     initiator: true,
-    trickle: false,
+    trickle: true,
     stream: stream,
     config: iceConfig,
   });
@@ -176,20 +176,20 @@ createPeer = (peerID) => {
     socket.emit('signaling-peer', {
       peerID,
       signal,
-      userID: userID(),
       name: $('#p-name-input').val,
     });
 
     console.log('signaling peer=>id', peerID, signal);
   });
-  // peer.on('stream', stream=>{
-  //     initVideo(userID,stream)
-  // })
+  peers.add({
+    peerID,
+    peer,
+    name,
+  });
   // socket.on('newUser', signal => {
   //     peer.signal(signal)
   //     console.log('newUser entered',signal)
   // })
-  return peer;
 };
 
 // old comers waiting for signals
@@ -206,6 +206,11 @@ addPeer = (incomingSignal, peerID, name) => {
     socket.emit('returning-signal', { peerID, signal, name });
     console.log('replying to a new signal id=>', peerID, signal);
   });
+  peers.add({
+    peerID,
+    peer,
+    name,
+  });
   // peer.on('stream', stream=>{
   //     console.log(stream)
   //     initVideo(userID,stream)
@@ -215,7 +220,6 @@ addPeer = (incomingSignal, peerID, name) => {
   //     console.log('newUser entered',signal)
   // })
   peer.signal(incomingSignal);
-  return peer;
 };
 
 leaveMeet = () => {
@@ -248,12 +252,7 @@ joinMeet = () => {
   socket.on('joined-in-room', (joinedPeers) => {
     console.log(`${joinedPeers.length} peers are already in meet`);
     joinedPeers.forEach((p) => {
-      const peer = createPeer(p.id);
-      peers.add({
-        peerID: p.id,
-        peer,
-        name: p.name,
-      });
+      createPeer(p.id, p.name);
       createVideo(p.id, p.name);
       playVideos();
       console.log('connected to user', p.name);
@@ -262,22 +261,21 @@ joinMeet = () => {
 
   // to get and setup a newly joined peer
   socket.on('user-joined', (payload) => {
-    const peer = addPeer(payload.signal, payload.peerID, payload.name);
-    peers.add({
-      peerID: payload.peerID,
-      peer,
-      name: payload.name,
-    });
+    addPeer(payload.signal, payload.peerID, payload.name);
     console.log('user-joined', payload.name);
     // console.log('user-joined','add')
     createVideo(payload.peerID, payload.name);
     playVideos();
   });
+  socket.on('receiving-candidate', (payload) => {
+    const item = peers.get(payload.peerID);
+    item.peer.signal(payload.signal);
+    console.log('received-candidate', payload.signal);
+  });
   socket.on('receiving-returned-signal', (payload) => {
     const item = peers.get(payload.id);
     item.peer.signal(payload.signal);
     console.log('received-returned-signal', payload.signal);
-    // playVideos()
   });
   socket.on('peer-left', (id) => {
     removePeer(id);

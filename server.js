@@ -69,12 +69,19 @@ io.on('connection', (socket) => {
     // console.log(userID)
   });
   socket.on('signaling-peer', (payload) => {
+    const signaledPeer = io.to(payload.peerID);
     // console.log('signaling-peer')
-    io.to(payload.peerID).emit('user-joined', {
-      signal: payload.signal,
-      peerID: payload.userID,
-      name: payload.name,
-    });
+    if (payload.signal.type === 'offer')
+      signaledPeer.emit('user-joined', {
+        signal: payload.signal,
+        peerID: socket.id,
+        name: payload.name,
+      });
+    else
+      signaledPeer.emit('receiving-candidate', {
+        peerID: socket.id,
+        signal: payload.signal,
+      });
   });
   socket.on('returning-signal', (payload) => {
     // console.log('returning-signal', payload.userID);
