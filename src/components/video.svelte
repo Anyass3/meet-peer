@@ -1,36 +1,59 @@
 <script lang="ts">
     import store from "../stores";
-    const { toggleCamera, toggleMic } = store.actions;
-    const { getCameraState, getMicState } = store.getters;
-    const camera = getCameraState();
-    const mic = getMicState();
-    export let id;
+    import Ping from "./icons/pingIcon.svelte";
+    const { toggleCamera, toggleMic, togglePing } = store.actions;
+    const { getCameraState, getMicState, getPinged } = store.getters;
+    const camera = getCameraState(),
+        mic = getMicState(),
+        ping = getPinged();
+
+    export let id = "";
     export let inMeet = false;
     export let name;
-    export let main_class = "w-100 h-100";
-    export let main_style = "";
+    export let main_class = "";
+    export let main_style = "width:400px";
     export let user = false;
+    export let vid_class = "";
+    export let vid_style = "";
+    $: pinged = $ping === id;
+    $: pingColor = pinged ? "success" : "light";
+    // $: console.log($ping, pinged);
+    // export let width = "";
+    // export let height = "";
 </script>
 
 <style>
     video {
-        object-fit: cover;
         border-radius: 9px 9px 0px 0px;
         background: black;
     }
 </style>
 
-<div class="mb-3 pb-4 position-relative {main_class}" style={main_style}>
+<div
+    class="{main_class} position-relative d-flex flex-column col-12 {pinged ? 'order-first vh-100' : 'col-sm-6 col-md-4 col-lg-3'}"
+    style={main_style}>
+    <span
+        on:click={() => togglePing(id)}
+        class="position-absolute"
+        style="z-index:30;">
+        <Ping
+            width="24"
+            height="24"
+            cls="alert alert-{pingColor} lead"
+            style="padding:2px" /></span>
     <!-- svelte-ignore a11y-media-has-caption -->
     <video
         {id}
         aria-label={user ? 'userVideo' : 'peerVideo'}
-        class="w-100 h-100"
+        class="w-100 flex-grow-1 {vid_class}"
+        style={vid_style}
         autoplay
         playsInline />
-    <div class="position-absolute w-100" style="bottom:-16px">
-        <div class="toggle w-100 d-flex justify-center">
-            {#if user}
+    <!-- svelte-ignore a11y-media-has-caption -->
+    <audio {id} class="d-none" />
+    <div class="w-100" style="">
+        {#if user && !inMeet}
+            <div class="toggle w-100 d-flex justify-center">
                 <button
                     id="toggleCamera"
                     class="btn"
@@ -43,20 +66,20 @@
                     on:click={() => toggleMic()}
                     class:btn-danger={$mic === 'off'}
                     class:btn-success={$mic === 'on'}>mic</button>
-            {/if}
-        </div>
-        <div class="item w-100 bg-danger p-0">
+            </div>
+        {/if}
+        <div class="w-100 p-0">
             {#if !inMeet && user}
                 <input
                     id="p-name-input"
-                    class="form-control my-0 lead text-center"
+                    class="form-control my-0 w-100 bs lead text-center"
                     type="text"
                     placeholder="Input Your Name"
                     on:input={(ev) => {
                         store.dispatch('setUserName', ev.target['value']);
                     }} />
             {:else}
-                <p id="p-name" class="bg-info lead my-0 p-2 text-center">
+                <p id="p-name" style="" class="lead my-0 p-2 text-center">
                     {(name || 'Anonymous') + (user ? '(Me)' : '')}
                 </p>
             {/if}

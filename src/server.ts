@@ -30,10 +30,10 @@ const Rooms = {};
 const peerRoom = {};
 
 io.on('connection', (socket) => {
-  console.log('socket connected', socket.id);
+  // console.log('socket connected', socket.id);
 
   socket.on('join-room', ({ roomId, name }) => {
-    // console.log('Rooms',Rooms)
+    console.log('roomId', roomId);
     if (Rooms[roomId]) {
       const len = Rooms[roomId].length;
       // console.log(len)
@@ -41,6 +41,7 @@ io.on('connection', (socket) => {
       if (len >= MAX_PEERS) {
         // console.log('room is full')
         socket.emit('room-full');
+        Rooms[roomId].forEach((s) => io.to(s.id).emit('notAllowed-room-full', name));
         return;
       }
       Rooms[roomId].push({ id: socket.id, name });
@@ -54,28 +55,36 @@ io.on('connection', (socket) => {
     // console.log(userId)
   });
   socket.on('signaling-peer', (payload) => {
-    // console.log('signaling-peer');
-    io.to(payload.peerId).emit('user-joined', {
-      signal: payload.signal,
-      userId: payload.userId,
-      name: payload.name,
-    });
+    const signaledPeer = io.to(payload.peerId);
+    // console.log('signaling-peer')
+    if (payload.signal.type === 'offer')
+      signaledPeer.emit('user-joined', {
+        signal: payload.signal,
+        peerId: socket.id,
+        name: payload.name,
+      });
+    else
+      signaledPeer.emit('receiving-candidate', {
+        peerId: socket.id,
+        signal: payload.signal,
+      });
   });
   socket.on('returning-signal', (payload) => {
     // console.log('returning-signal', payload.userId);
-    io.to(payload.userId).emit('receiving-returned-signal', {
+    io.to(payload.peerId).emit('receiving-returned-signal', {
       signal: payload.signal,
       id: socket.id,
       name: payload.name,
     });
   });
   socket.on('disconnect', () => {
-    console.log(socket.id, 'disconnected');
     const roomId = peerRoom[socket.id];
     const room = Rooms[roomId];
+    console.log(roomId, room, Rooms);
     if (room) {
       Rooms[roomId] = room.filter((i) => i.id !== socket.id);
       Rooms[roomId].forEach((s) => io.to(s.id).emit('peer-left', socket.id));
     }
+    // console.log(socket.id, 'disconnected');
   });
 });

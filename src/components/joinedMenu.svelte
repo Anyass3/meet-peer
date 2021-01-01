@@ -9,6 +9,8 @@
         ShareIcon,
         LogOutIcon,
     } from "svelte-feather-icons";
+    export let cls = "";
+    export let style = "";
     const { toggleCamera, toggleMic } = store.actions;
     const { getCameraState, getMicState } = store.getters;
     const camera = getCameraState();
@@ -33,17 +35,12 @@
 </style>
 
 <div
-    class="bg-white mt-2 w-100 d-flex justify-between p-2"
-    style="min-height:50px;z-index:10">
+    class=" mt-2 w-100 d-flex justify-between p-2 {cls}"
+    style="min-height:50px;z-index:10;{style}">
     <!-- <div class="d-flex justify-center as-center mr-2">
         <span class="btn btn-info">info</span>
     </div> -->
     <div class="d-flex justify-evenly as-center flex-grow-1 br bl">
-        <span on:click={leave_meet} class=" ">
-            <LogOutIcon
-                size="2x"
-                style="background-color: #ffebbe;"
-                class="btn btn-light text-danger  lead3  b border-danger" /></span>
         <span on:click={toggleCamera}>
             {#if $camera === 'on'}
                 <CameraIcon size="2x" class="btn btn-{cam_color} lead3" />
@@ -58,10 +55,16 @@
                 <MicOffIcon size="2x" class="btn btn-{mic_color} lead3" />
             {/if}
         </span>
-        <!-- <span on:click={toggleMic} class="btn btn-{mic_color} ">mic</span> -->
         <span>
             <ShareIcon size="2x" class="btn btn-light rounded-pill lead3" />
         </span>
+
+        <span on:click={leave_meet} class=" ">
+            <LogOutIcon
+                size="2x"
+                style="background-color: #ffebbe;"
+                class="btn btn-light text-danger  lead3  b border-danger" /></span>
+        <!-- <span on:click={toggleMic} class="btn btn-{mic_color} ">mic</span> -->
     </div>
     <div class="d-flex justify-center as-center">
         <span class="lead3 btn btn-light rounded mx-auto">:</span>

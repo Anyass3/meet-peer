@@ -7,8 +7,8 @@ export default {
     cameraState: 'off',
     micState: 'off',
     stream: null,
-    fakeVideoStream: null,
     userVideo: null,
+    aspectRatio: 1,
   },
   mutations: {
     toggleCameraState(state) {
@@ -48,61 +48,76 @@ export default {
       let fakeVideoAudio = (...args) => new MediaStream([fakeVideo(...args), fakeAudio()]);
       const fake_stream = fakeVideoAudio();
       commit('setStream', fake_stream);
-      commit('setFakeVideoStream', fake_stream.getVideoTracks()[0]);
       // userVideo = createVideo();
       commit('setUserVideoProp', { srcObject: fake_stream, muted: true });
     },
-    startStreaming: ({ state, dispatch }, { video = false, audio = false } = {}) => {
+    async startStreaming({ state, dispatch }, { video = false, audio = false } = {}) {
+      if (!!audio && get(state.startedAudioStream)) return;
+      if (!!video && get(state.startedVideoStream)) return;
       if (video === false && audio === false) return;
-
-      try {
-        navigator.mediaDevices.getUserMedia({ video, audio }).then((newStream) => {
-          if (!get(state.startedVideoStream)) dispatch('setStartedVideoStream', !!video);
-          if (!get(state.startedAudioStream)) dispatch('setStartedAudioStream', !!audio);
-          let stream: MediaStream = get(state.stream);
-          if (video) {
-            state.peers.subscribe((peers) =>
-              peers.forEach((p) => {
-                p.peer.replaceTrack(
-                  stream.getVideoTracks()[0],
-                  newStream.getVideoTracks()[0],
-                  stream
-                );
-              })
-            )();
-            stream.removeTrack(stream.getVideoTracks()[0]);
-            stream.addTrack(newStream.getVideoTracks()[0]);
-          } else {
-            state.peers.subscribe((peers) =>
-              peers.forEach((p) => {
-                p.peer.replaceTrack(
-                  stream.getAudioTracks()[0],
-                  newStream.getAudioTracks()[0],
-                  stream
-                );
-              })
-            )();
-            stream.removeTrack(stream.getAudioTracks()[0]);
-            stream.addTrack(newStream.getAudioTracks()[0]);
-          }
-        });
-      } catch (err) {
-        console.log(err.name, err.message);
+      let newStream: MediaStream = await navigator.mediaDevices.getUserMedia({ video, audio });
+      if (!get(state.startedVideoStream)) dispatch('setStartedVideoStream', !!video);
+      if (!get(state.startedAudioStream)) dispatch('setStartedAudioStream', !!audio);
+      let stream: MediaStream = get(state.stream);
+      if (video) {
+        state.peers.subscribe((peers) =>
+          peers.forEach((p) => {
+            p.peer.replaceTrack(stream.getVideoTracks()[0], newStream.getVideoTracks()[0], stream);
+          })
+        )();
+        stream.removeTrack(stream.getVideoTracks()[0]);
+        stream.addTrack(newStream.getVideoTracks()[0]);
+      } else {
+        state.peers.subscribe((peers) =>
+          peers.forEach((p) => {
+            p.peer.replaceTrack(stream.getAudioTracks()[0], newStream.getAudioTracks()[0], stream);
+          })
+        )();
+        stream.removeTrack(stream.getAudioTracks()[0]);
+        stream.addTrack(newStream.getAudioTracks()[0]);
       }
     },
-    async enableMic({ state, dispatch, commit }, v = true) {
-      if (!get(state.startedAudioStream)) await dispatch('startStreaming', { mic: true });
-      get(state.stream)
-        ['getAudioTracks']()
-        .forEach((track) => (track.enabled = v));
-      commit('setMicState', v ? 'on' : 'off');
+    enableMic({ state, dispatch, commit }, v = true) {
+      dispatch('startStreaming', {
+        audio: {
+          autoGainControl: false,
+          googAutoGainControl: false,
+          channelCount: 2,
+          echoCancellation: true,
+          latency: 0,
+          noiseSuppression: true,
+          sampleRate: 48000,
+          sampleSize: 16,
+          volume: 1.0,
+        },
+      })
+        .then(() => {
+          get(state.stream)
+            ['getAudioTracks']()
+            .forEach((track) => (track.enabled = v));
+          commit('setMicState', v ? 'on' : 'off');
+        })
+        .catch((err) => {
+          state.notify.danger(`${err.name}: ${err.message}`, 5000);
+          console.log(err.name, err.message);
+        });
     },
-    async enableCamera({ state, dispatch, commit }, v = true) {
-      if (!get(state.startedVideoStream)) await dispatch('startStreaming', { video: true });
-      get(state.stream)
-        ['getVideoTracks']()
-        .forEach((track) => (track.enabled = v));
-      commit('setCameraState', v ? 'on' : 'off');
+    enableCamera({ state, dispatch, commit }, v = true) {
+      dispatch('startStreaming', {
+        video: {
+          aspectRatio: get(state.aspectRatio),
+        },
+      })
+        .then(() => {
+          get(state.stream)
+            ['getVideoTracks']()
+            .forEach((track) => (track.enabled = v));
+          commit('setCameraState', v ? 'on' : 'off');
+        })
+        .catch((err) => {
+          state.notify.danger(`${err.name}: ${err.message}`, 5000);
+          console.log(err.name, err.message);
+        });
     },
   },
 };

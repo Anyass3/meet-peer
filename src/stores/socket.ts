@@ -36,7 +36,7 @@ export default {
       });
 
       socket.on('room-full', () => {
-        alert('Sorry room is already full');
+        state.notify.warning('Sorry room is already full');
         commit('setJoinRequest', false);
         dispatch('setHasLeftWillingly', true); //:)sorry
         dispatch('leaveMeet');
@@ -44,31 +44,26 @@ export default {
 
       // to get and setup peers already in the meet
       socket.on('joined-in-room', (joinedPeers) => {
+        state.notify.info(`${joinedPeers.length} peers are already in meet`);
         dispatch('setEnteredRoom', true);
         joinedPeers.forEach((i) => {
-          const peer = commit('createPeer', i.id);
-          state.peers.update((peers) =>
-            peers.add({
-              peerId: i.id,
-              peer,
-              name: i.name,
-            })
-          );
-          dispatch('playVideos');
+          dispatch('createPeer', i.id, i.name);
+          // dispatch('playVideos');
         });
       });
 
       // to get and setup a newly joined peer
       socket.on('user-joined', (payload) => {
-        const peer = commit('addPeer', payload.signal, payload.userId, payload.name);
-        state.peers.update((peers) =>
-          peers.add({
-            peerId: payload.userId,
-            peer,
-            name: payload.name,
-          })
-        );
-        dispatch('playVideos');
+        dispatch('addPeer', payload.signal, payload.peerId, payload.name).then(() => {
+          state.notify.info(`${payload.name || 'Anonymous'} Joined Meet`);
+        });
+        // dispatch('playVideos');
+      });
+      socket.on('receiving-candidate', (payload) => {
+        const peers: Set<any> = get(state.peers);
+        const item = Array.from(peers).find((i) => i['peerId'] === payload.peerId);
+        // const item: any = get(g('getPeer', payload.id));
+        item.peer.signal(payload.signal);
       });
       socket.on('receiving-returned-signal', (payload) => {
         const peers: Set<any> = get(state.peers);
@@ -77,8 +72,15 @@ export default {
         item.peer.signal(payload.signal);
       });
       socket.on('peer-left', (id) => {
-        dispatch('removePeer', id);
+        dispatch('removePeer', id)
+          .then((name) => {
+            state.notify.info(`${name === 'OK' ? 'Anonymous' : name || 'Anonymous'} left meet`);
+          })
+          .catch((err) => {});
         console.log('a peer left');
+      });
+      socket.on('notAllowed-room-full', (name) => {
+        state.notify.info(`${name || 'Someone'} wanted to join but room is already full`);
       });
       socket.on('disconnect', () => {
         console.log('socket disconnected');
@@ -96,7 +98,9 @@ export default {
               console.log('socket.disconnected)');
               commit('setJoinedRequest', false);
               dispatch('setReconnecting', false).then(() =>
-                dispatch('leaveMeet').then(() => dispatch('setEnteredRoom', false))
+                dispatch('leaveMeet')
+                  .then(() => dispatch('setEnteredRoom', false))
+                  .then(() => state.notify.info(`You Left Meet`))
               );
             }
           }, 50000);
@@ -108,6 +112,7 @@ export default {
     leaveMeet: ({ state }) => {
       const socket: Socket = get(state.socket);
       socket.disconnect();
+      state.notify.info(`You Left Meet`);
     },
   },
 };

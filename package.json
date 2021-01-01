@@ -18,11 +18,12 @@
     "compression": "^1.7.1",
     "express": "^4.17.1",
     "polka": "^0.5.2",
+    "sibilant-webaudio": "^0.1.5",
     "simple-peer": "^9.9.3",
     "sirv": "^1.0.0",
     "socket.io": "^3.0.3",
     "socket.io-client": "^3.0.4",
-    "stores-x": "^0.0.73",
+    "stores-x": "^0.0.74",
     "uuid": "^8.3.1"
   },
   "devDependencies": {
@@ -31,6 +32,7 @@
     "@babel/plugin-transform-runtime": "^7.0.0",
     "@babel/preset-env": "^7.0.0",
     "@babel/runtime": "^7.0.0",
+    "@beyonk/svelte-notifications": "^3.1.0",
     "@rollup/plugin-babel": "^5.0.0",
     "@rollup/plugin-commonjs": "^14.0.0",
     "@rollup/plugin-node-resolve": "^8.0.0",

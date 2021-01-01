@@ -11,7 +11,7 @@
 		// 	this.error(res.status, data.message);
 		// }
 		return {
-			post: { slug: params.roomId, title: "string", html: "<p>hmm</p>" },
+			params: { roomId: params.roomID },
 		};
 	}
 </script>
@@ -20,11 +20,12 @@
 	// const SimplePeer = require("simple-peer");
 	import { onMount } from "svelte";
 	// import io from "socket.io-client";
-	// export let post: { slug: string; title: string; html: any };
+	export let params: { roomId: string };
 	import store from "../../stores";
 	import Video from "../../components/video.svelte";
 	import JoinedMenu from "../../components/joinedMenu.svelte";
 	import { throttle } from "../../utils";
+	import { NotificationDisplay } from "@beyonk/svelte-notifications";
 	const {
 		getUserId,
 		getPeers,
@@ -41,32 +42,38 @@
 		sendingJoinRequest = getJoinRequest();
 
 	let id,
+		maxH,
+		bProp = {},
 		join_meet_text = "Enter Meet Now";
 	$: join_meet_text = $sendingJoinRequest
 		? "Connecting..."
 		: "Enter Meet Now";
+	$: bProp = $sendingJoinRequest ? { disabled: true } : {};
 	$: id = getUserId();
 
 	// initiator
-	const join_meet = () =>
+	const join_meet = (ev) =>
 		throttle(() => {
 			store.commit("setJoinRequest", true);
-			store.dispatch("joinMeet");
+			store.dispatch("joinMeet", params.roomId);
 
-			//   $("#joinMeet").attr('disabled','').text="Connecting..."
+			// document.querySelector("#joinMeet").setAttribute('disabled','')
 		}, 5000)();
 
 	onMount(() => {
+		maxH = innerHeight;
+		store.dispatch("setAspectRatio", innerWidth / innerHeight);
 		store.dispatch(
 			"setUserVideo",
 			document.querySelector("[aria-label='userVideo']")
 		);
 		store.dispatch("fakeStream").then(
-			() => 0 //join_meet()
+			() => join_meet(params.roomId)
 			// store
 			// 	.dispatch("toggleCamera")
 			// 	.then(() => store.dispatch("toggleMic").then(() => 0))
 		);
+		// console.log(store.state.iceConfig);
 	});
 </script>
 
@@ -79,46 +86,73 @@
 		transform: scale(0.9);
 		transition: none;
 	}
+	:global(html) {
+		margin: 0 !important;
+	}
+	:global(body) {
+		margin: 0 !important;
+	}
 </style>
 
 <svelte:head>
 	<script defer src="/simplepeer.min.js">
 	</script>
 </svelte:head>
-
-<div style="display:flex;justify-content: center;">
-	<h1 style="text-align: center;">Peer Meet Room</h1>
-	{#if $reconnecting}
-		<div>
-			<p style="color:red">reconnecting...</p>
-		</div>
-	{/if}
-</div>
-<main class="d-flex justify-around flex-wrap  bg-primary">
-	<!-- <p>mic:{$mic}||cam:{$cam}</p> -->
-	<div class="d-flex justify-evenly flex-wrap mb-0">
-		<Video
-			{id}
-			name={$name}
-			main_style="flex-basis:auto"
-			inMeet={$inMeet}
-			user />
-		{#each [...$peers] as peer (peer.peerId)}
-			<Video id={'peer' + peer.peerId} name={peer.name} />
-		{/each}
+<NotificationDisplay />
+<main class="vh-100 vw-100 m-0 position-relative">
+	<div
+		style="display:flex;justify-content: center;z-index:20"
+		class="w-100 position-fixed">
+		<h1
+			style="text-align: center;{$inMeet ? 'opacity:.5;' : ''}"
+			class="text-muted">
+			Peer Meet Room
+		</h1>
+		{#if $reconnecting}
+			<div>
+				<p style="color:red">reconnecting...</p>
+			</div>
+		{/if}
 	</div>
-	{#if !$inMeet}
-		<div class="">
-			<button
-				id="joinMeet"
-				class="btn btn-success w-100"
-				on:click={join_meet}
-				style="margin: 20px;">
-				{join_meet_text}
-			</button>
+	<div class="d-flex justify-around flex-wrap h-100">
+		<div class="container flex-grow-1 mw-100">
+			<div class="row justify-center mw-100 m-0 mh-100">
+				{#each [...$peers] as peer (peer.peerId)}
+					<Video
+						main_class=""
+						id={'peer' + peer.peerId}
+						main_style=""
+						name={peer.name} />
+				{/each}
+				<Video
+					{id}
+					name={$name}
+					inMeet={$inMeet}
+					vid_class="mw-100"
+					main_class=""
+					main_style={false ? `height:${maxH ? maxH - maxH * 0.25 + 'px' : '90%'}` : ''}
+					user />
+				<!-- {#each '    ' as i}
+					<Video
+						main_style="flex-basis:400px"
+						main_class="flex-grow-1 flex-shrink-1 m-1" />
+				{/each} -->
+			</div>
 		</div>
+		{#if !$inMeet}
+			<div class="as-center d-flex justify-center">
+				<button
+					{...bProp}
+					id="joinMeet"
+					class="btn btn-success w-100"
+					on:click={join_meet}
+					style="margin: 20px;">
+					{join_meet_text}
+				</button>
+			</div>
+		{/if}
+	</div>
+	{#if $inMeet}
+		<JoinedMenu cls="position-fixed" style="bottom:0;left:0;right:0" />
 	{/if}
 </main>
-{#if $inMeet}
-	<JoinedMenu />
-{/if}
