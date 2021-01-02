@@ -27,11 +27,11 @@ export default {
     },
   },
   mutations: {
-    setPeerVideo(state, id, vidStream, options = {}) {
+    setPeerMedia(state, id, mediaStream, options = {}) {
       // const peers: Set<any> = get(state.peers);
-      const video: any = document.getElementById('peer' + id);
-      video.srcObject = vidStream;
-      for (let prop in options) video[prop] = options[prop];
+      const media: any = document.getElementById('peer' + id);
+      media.srcObject = mediaStream;
+      for (let prop in options) media[prop] = options[prop];
     },
   },
   actions: {
@@ -60,7 +60,6 @@ export default {
         })
       );
       peer.on('stream', (stream) => {
-        console.log(stream.getTracks());
         if (stream.getTracks().length === 2) dispatch('playVideo', stream, peerId);
         else dispatch('playShare', peer, stream, peerId);
       });
@@ -93,7 +92,6 @@ export default {
         })
       );
       peer.on('stream', (stream) => {
-        console.log(stream.getTracks());
         if (stream.getTracks().length === 2) dispatch('playVideo', stream, peerId);
         else {
           dispatch('playShare', peer, stream, peerId, name).then(() => {
@@ -112,25 +110,31 @@ export default {
     },
 
     playVideo({ commit }, stream, peerId) {
-      if (stream.getVideoTracks()[0].muted) {
-        commit('setPeerVideo', peerId, new MediaStream([stream.getAudioTracks()[0]]), {
-          muted: false,
-        });
-        console.log('VidinitVideoeo is muted');
-        stream.getVideoTracks()[0].onunmute = () => {
-          // console.log('Video has unmuted');
-          commit('setPeerVideo', peerId, stream, { muted: false });
-        };
-        stream.getVideoTracks()[0].onmute = () => {
-          // console.log('video MUTED Again', peerId);
-          commit('setPeerVideo', peerId, new MediaStream([stream.getAudioTracks()[0]]), {
-            muted: false,
-          });
-        };
-      } else {
-        // console.log('Video not muted');
-        commit('setPeerVideoplayScreen', peerId, stream, { muted: false });
-      }
+      commit('setPeerMedia', peerId, new MediaStream([stream.getVideoTracks()[0]]), {
+        muted: true,
+      });
+      commit('setPeerMedia', peerId + 'audio', new MediaStream([stream.getAudioTracks()[0]]), {
+        muted: false,
+      });
+      // if (stream.getVideoTracks()[0].muted) {
+      //   commit('setPeerMedia', peerId, new MediaStream([stream.getAudioTracks()[0]]), {
+      //     muted: false,
+      //   });
+      //   console.log('VidinitVideoeo is muted');
+      //   stream.getVideoTracks()[0].onunmute = () => {
+      //     // console.log('Video has unmuted');
+      //     commit('setPeerMedia', peerId, stream, { muted: false });
+      //   };
+      //   stream.getVideoTracks()[0].onmute = () => {
+      //     // console.log('video MUTED Again', peerId);
+      //     commit('setPeerMedia', peerId, new MediaStream([stream.getAudioTracks()[0]]), {
+      //       muted: false,
+      //     });
+      //   };
+      // } else {
+      //   // console.log('Video not muted');
+      //   commit('setPeerMediaplayScreen', peerId, stream, { muted: false });
+      // }
     },
     playShare({ state, commit }, peer, stream, peerId, peerName) {
       let sharing = true;
@@ -145,14 +149,14 @@ export default {
           );
           setTimeout(() => {
             commit(
-              'setPeerVideo',
+              'setPeerMedia',
               '-screen-' + peerId,
               new MediaStream([stream.getVideoTracks()[0]]),
               {
                 muted: true,
               }
             );
-            state.notify.success(`${peerName || 'Anonymous'} started sharing screen`);
+            state.notify.success(`${peerName || 'Anonymous'} started sharing screen`, 7000);
           }, 100);
           sharing = false;
         } else {
@@ -161,7 +165,7 @@ export default {
             set.delete(screen);
             return set;
           });
-          state.notify.info(`${peerName || 'Anonymous'} has stopped started sharing screen`);
+          state.notify.info(`${peerName || 'Anonymous'} has stopped started sharing screen`, 7000);
           sharing = true;
         }
       });

@@ -32,6 +32,7 @@ export default {
           socket.emit('join-room', { roomId, name: get(state.userName) });
           console.log('socket connected');
           commit('setHasLeftWillingly', false);
+          dispatch('setReconnecting', false);
         } else dispatch('leaveMeet');
       });
 
@@ -44,6 +45,7 @@ export default {
 
       // to get and setup peers already in the meet
       socket.on('joined-in-room', (joinedPeers) => {
+        if (window) window.scrollTo(0, 0);
         state.notify.info(`${joinedPeers.length} peers are already in meet`);
         dispatch('setEnteredRoom', true);
         joinedPeers.forEach((i) => {
@@ -72,12 +74,9 @@ export default {
         item.peer.signal(payload.signal);
       });
       socket.on('peer-left', (id) => {
-        dispatch('removePeer', id)
-          .then((name) => {
-            state.notify.info(`${name === 'OK' ? 'Anonymous' : name || 'Anonymous'} left meet`);
-          })
-          .catch((err) => {});
-        console.log('a peer left');
+        dispatch('removePeer', id).then((name) => {
+          state.notify.info(`${name === 'OK' ? 'Anonymous' : name || 'Anonymous'} left meet`);
+        });
       });
       socket.on('notAllowed-room-full', (name) => {
         state.notify.info(`${name || 'Someone'} wanted to join but room is already full`);

@@ -64,9 +64,7 @@
 
 	onMount(() => {
 		maxH = `${innerWidth} ${innerHeight} ${innerWidth / innerHeight}`;
-		store
-			.dispatch("setAspectRatio", innerWidth / innerHeight)
-			.then((r) => console.log(r, innerWidth / innerHeight));
+		store.dispatch("setAspectRatio", innerWidth / innerHeight);
 		store.dispatch(
 			"setUserVideo",
 			document.querySelector("[aria-label='userVideo']")
@@ -77,14 +75,13 @@
 			// 	.dispatch("toggleCamera")
 			// 	.then(() => store.dispatch("toggleMic").then(() => 0))
 		);
-		// console.log(store.state.iceConfig);
 	});
 </script>
 
 <style>
-	:global(body) {
-		background: aliceblue;
-	}
+	/* :global(body) {
+		background: #e1f5fe;
+	} */
 
 	:global(button):active {
 		transform: scale(0.9);
@@ -103,24 +100,24 @@
 	</script>
 </svelte:head>
 <NotificationDisplay />
-<main class="vh-100 vw-100 m-0 position-relative">
+<main class="vh-100 vw-100 m-0 position-relative bg-light">
 	<div
-		style="display:flex;justify-content: center;z-index:20"
-		class="w-100 position-fixed text-danger">
-		<h1
-			style="text-align: center;{$inMeet ? 'opacity:.5;' : ''}"
-			class="text-muted">
-			Peer Meet Room
-		</h1>
+		style="z-index:20"
+		class="w-100 p-0 m-0 position-fixed d-flex justify-center">
+		{#if !$inMeet}
+			<h1 style="text-align: center;opacity:.5;" class="text-muted">
+				Peer Meet Room
+			</h1>
+		{/if}
 		{#if $reconnecting}
-			<div>
-				<p style="color:red">reconnecting...</p>
+			<div class="alert d-block alert-danger lead">
+				<p>reconnecting...</p>
 			</div>
 		{/if}
 	</div>
 	<div class="d-flex justify-around flex-wrap h-100">
-		<div class="container flex-grow-1 mw-100">
-			<div class="row gx-1 justify-center mw-100 m-0 mh-100">
+		<div class="container flex-grow-1 pb-5 mw-100">
+			<div class="row g-1 as-center  justify-center mw-100 m-0 mh-100">
 				{#each [...$screens] as { id, name } (id)}
 					<Video main_class="" {id} main_style="" {name} />
 				{/each}

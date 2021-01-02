@@ -32,10 +32,12 @@
 </script>
 
 <div
-    class="{main_class} position-relative bg-secondary d-flex flex-column b p-0 rounded-lg col-12 {pinged || (user && !inMeet) ? 'order-first vh-90 vh-md-100' : 'col-sm-6 col-md-4 col-lg-3'}"
-    style={main_style}>
+    class="{main_class} position-relative  d-flex flex-column b p-0 rounded-lg col-12 {pinged || (user && !inMeet) ? 'order-first vh-90 vh-md-100' : 'col-sm-6 col-md-4 col-lg-3'}"
+    style="background:#e3f2fd;{main_style}">
     <span
-        on:click={() => togglePing(id)}
+        on:click={() => store.dispatch('togglePing', id).then(() => {
+                if (pinged && window) window.scrollTo(0, 0);
+            })}
         class="position-absolute"
         style="z-index:30;">
         <Ping
@@ -47,12 +49,12 @@
     <video
         {id}
         aria-label={user ? 'userVideo' : 'peerVideo'}
-        class="flex-grow-1 fluid bg-secondary {vid_class}"
+        class="flex-grow-1 fluid  {vid_class}"
         style={vid_style}
         autoplay
         playsInline />
     <!-- svelte-ignore a11y-media-has-caption -->
-    <audio {id} class="d-none" />
+    <audio id={id + 'audio'} autoplay playsinline class="d-none" />
     <div class="w-100" style="">
         {#if user && !inMeet}
             <div class="toggle w-100 d-flex justify-center">
