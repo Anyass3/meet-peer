@@ -17,6 +17,7 @@
     "bootstrap": "^5.0.0-beta1",
     "compression": "^1.7.1",
     "express": "^4.17.1",
+    "pem": "^1.14.4",
     "polka": "^0.5.2",
     "sibilant-webaudio": "^0.1.5",
     "simple-peer": "^9.9.3",

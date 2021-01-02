@@ -442,10 +442,13 @@ $utilities: map-merge(
       ),
     ),
     'viewport-height': (
+      responsive: true,
       property: height,
       class: vh,
       values: (
         100: 100vh,
+        90: 90vh,
+        75: 75vh,
       ),
     ),
     'min-viewport-height': (

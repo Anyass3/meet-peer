@@ -11,10 +11,11 @@
     } from "svelte-feather-icons";
     export let cls = "";
     export let style = "";
-    const { toggleCamera, toggleMic } = store.actions;
-    const { getCameraState, getMicState } = store.getters;
-    const camera = getCameraState();
-    const mic = getMicState();
+    const { toggleCamera, toggleMic, toggleShareScreen } = store.actions;
+    const { getCameraState, getMicState, getSharingScreen } = store.getters;
+    const camera = getCameraState(),
+        mic = getMicState(),
+        sharingScreen = getSharingScreen();
 
     const leave_meet = () =>
         throttle(() => {
@@ -55,8 +56,10 @@
                 <MicOffIcon size="2x" class="btn btn-{mic_color} lead3" />
             {/if}
         </span>
-        <span>
-            <ShareIcon size="2x" class="btn btn-light rounded-pill lead3" />
+        <span on:click={toggleShareScreen}>
+            <ShareIcon
+                size="2x"
+                class="btn {$sharingScreen ? 'bg-success' : 'bg-light'} rounded-pill lead3" />
         </span>
 
         <span on:click={leave_meet} class=" ">

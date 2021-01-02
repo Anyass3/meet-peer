@@ -1,6 +1,12 @@
 <script lang="ts">
     import store from "../stores";
     import Ping from "./icons/pingIcon.svelte";
+    import {
+        MicOffIcon,
+        MicIcon,
+        CameraOffIcon,
+        CameraIcon,
+    } from "svelte-feather-icons";
     const { toggleCamera, toggleMic, togglePing } = store.actions;
     const { getCameraState, getMicState, getPinged } = store.getters;
     const camera = getCameraState(),
@@ -17,20 +23,16 @@
     export let vid_style = "";
     $: pinged = $ping === id;
     $: pingColor = pinged ? "success" : "light";
+
+    $: cam_color = $camera === "on" ? "success" : "danger";
+    $: mic_color = $mic === "on" ? "success" : "danger";
     // $: console.log($ping, pinged);
     // export let width = "";
     // export let height = "";
 </script>
 
-<style>
-    video {
-        border-radius: 9px 9px 0px 0px;
-        background: black;
-    }
-</style>
-
 <div
-    class="{main_class} position-relative d-flex flex-column col-12 {pinged ? 'order-first vh-100' : 'col-sm-6 col-md-4 col-lg-3'}"
+    class="{main_class} position-relative bg-secondary d-flex flex-column b p-0 rounded-lg col-12 {pinged || (user && !inMeet) ? 'order-first vh-90 vh-md-100' : 'col-sm-6 col-md-4 col-lg-3'}"
     style={main_style}>
     <span
         on:click={() => togglePing(id)}
@@ -45,7 +47,7 @@
     <video
         {id}
         aria-label={user ? 'userVideo' : 'peerVideo'}
-        class="w-100 flex-grow-1 {vid_class}"
+        class="flex-grow-1 fluid bg-secondary {vid_class}"
         style={vid_style}
         autoplay
         playsInline />
@@ -54,18 +56,26 @@
     <div class="w-100" style="">
         {#if user && !inMeet}
             <div class="toggle w-100 d-flex justify-center">
-                <button
-                    id="toggleCamera"
-                    class="btn"
-                    on:click={() => toggleCamera()}
-                    class:btn-danger={$camera === 'off'}
-                    class:btn-success={$camera === 'on'}>video</button>
-                <button
-                    id="toggleMic"
-                    class="btn"
-                    on:click={() => toggleMic()}
-                    class:btn-danger={$mic === 'off'}
-                    class:btn-success={$mic === 'on'}>mic</button>
+                <span on:click={toggleCamera}>
+                    {#if $camera === 'on'}
+                        <CameraIcon
+                            size="2x"
+                            class="btn btn-{cam_color} lead3" />
+                    {:else}
+                        <CameraOffIcon
+                            size="2x"
+                            class="btn btn-{cam_color} lead3" />
+                    {/if}
+                </span>
+                <span on:click={toggleMic}>
+                    {#if $mic === 'on'}
+                        <MicIcon size="2x" class="btn btn-{mic_color} lead3" />
+                    {:else}
+                        <MicOffIcon
+                            size="2x"
+                            class="btn btn-{mic_color} lead3" />
+                    {/if}
+                </span>
             </div>
         {/if}
         <div class="w-100 p-0">

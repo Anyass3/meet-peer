@@ -33,13 +33,15 @@
 		getJoinRequest,
 		getUserName,
 		getReconnecting,
+		getScreens,
 	} = store.getters;
 
 	const peers = getPeers(),
 		inMeet = getEnteredRoom(),
 		name = getUserName(),
 		reconnecting = getReconnecting(),
-		sendingJoinRequest = getJoinRequest();
+		sendingJoinRequest = getJoinRequest(),
+		screens = getScreens();
 
 	let id,
 		maxH,
@@ -61,14 +63,16 @@
 		}, 5000)();
 
 	onMount(() => {
-		maxH = innerHeight;
-		store.dispatch("setAspectRatio", innerWidth / innerHeight);
+		maxH = `${innerWidth} ${innerHeight} ${innerWidth / innerHeight}`;
+		store
+			.dispatch("setAspectRatio", innerWidth / innerHeight)
+			.then((r) => console.log(r, innerWidth / innerHeight));
 		store.dispatch(
 			"setUserVideo",
 			document.querySelector("[aria-label='userVideo']")
 		);
 		store.dispatch("fakeStream").then(
-			() => join_meet(params.roomId)
+			() => 0 //join_meet(params.roomId)
 			// store
 			// 	.dispatch("toggleCamera")
 			// 	.then(() => store.dispatch("toggleMic").then(() => 0))
@@ -102,7 +106,7 @@
 <main class="vh-100 vw-100 m-0 position-relative">
 	<div
 		style="display:flex;justify-content: center;z-index:20"
-		class="w-100 position-fixed">
+		class="w-100 position-fixed text-danger">
 		<h1
 			style="text-align: center;{$inMeet ? 'opacity:.5;' : ''}"
 			class="text-muted">
@@ -116,7 +120,10 @@
 	</div>
 	<div class="d-flex justify-around flex-wrap h-100">
 		<div class="container flex-grow-1 mw-100">
-			<div class="row justify-center mw-100 m-0 mh-100">
+			<div class="row gx-1 justify-center mw-100 m-0 mh-100">
+				{#each [...$screens] as { id, name } (id)}
+					<Video main_class="" {id} main_style="" {name} />
+				{/each}
 				{#each [...$peers] as peer (peer.peerId)}
 					<Video
 						main_class=""
@@ -128,7 +135,7 @@
 					{id}
 					name={$name}
 					inMeet={$inMeet}
-					vid_class="mw-100"
+					vid_class=""
 					main_class=""
 					main_style={false ? `height:${maxH ? maxH - maxH * 0.25 + 'px' : '90%'}` : ''}
 					user />
