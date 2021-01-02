@@ -38,7 +38,6 @@ pem.createCertificate({ days: 1, selfSigned: true }, (err, keys) => {
     // console.log('socket connected', socket.id);
 
     socket.on('join-room', ({ roomId, name }) => {
-      console.log('roomId', roomId);
       if (Rooms[roomId]) {
         const len = Rooms[roomId].length;
         // console.log(len)

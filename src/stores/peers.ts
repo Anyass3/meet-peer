@@ -5,7 +5,6 @@ export default {
   default: { iceConfig: false, notifier: false },
   noStore: ['iceConfig', 'notify'],
   state: {
-    roomId: undefined,
     peers: new Set(),
     speaking: null,
     pinged: null,
@@ -22,8 +21,15 @@ export default {
     },
   },
   getters: {
-    getPeer(state, id) {
-      Array.from(get(state.peers)).find((i) => i['peerId'] === id);
+    getPeer: (state, id) => {
+      return Array.from(get(state.peers)).find((i) => i['peerId'] === id);
+    },
+    getPeerScreen(state, id) {
+      const screens: Set<any> = get(state.screens);
+      return Array.from(screens).find((i) => i['id'] === 'peer-screen-' + id);
+    },
+    getPeerVideoId: (state, peerId) => {
+      return 'peer-' + peerId;
     },
   },
   mutations: {
@@ -33,9 +39,33 @@ export default {
       media.srcObject = mediaStream;
       for (let prop in options) media[prop] = options[prop];
     },
+    deletePeerScreen(state, g, peerId) {
+      state.screens.update((set) => {
+        const screen = g('getPeerScreen', peerId);
+        set.delete(screen);
+        return set;
+      });
+    },
+    addPeerScreen(state, peerId, peerName) {
+      state.screens.update((set) =>
+        set.add({
+          id: 'peer-screen-' + peerId,
+          name: (peerName || 'Anonymous') + '(Screen)',
+        })
+      );
+    },
+    savePeer(state, peer, peerId, name) {
+      state.peers.update((peers) =>
+        peers.add({
+          peerId: peerId,
+          peer,
+          name,
+        })
+      );
+    },
   },
   actions: {
-    createPeer: ({ state, dispatch }, peerId, name) => {
+    createPeer: ({ state, commit, dispatch }, peerId, name) => {
       const stream: MediaStream = get(state.stream);
       const peer = new window['SimplePeer']({
         initiator: true,
@@ -52,24 +82,14 @@ export default {
           name: get(state.userName),
         });
       });
-      state.peers.update((peers) =>
-        peers.add({
-          peerId: peerId,
-          peer,
-          name,
-        })
-      );
+      commit('savePeer', peer, peerId, name);
       peer.on('stream', (stream) => {
         if (stream.getTracks().length === 2) dispatch('playVideo', stream, peerId);
         else dispatch('playShare', peer, stream, peerId);
       });
-      // peer.on('track', (track, stream) => {
-      //   console.log('track', track, stream.getTracks());
-      // });
-      // return peer;
     },
     // old comers waiting for signals
-    addPeer: ({ state, dispatch }, incomingSignal, peerId, name) => {
+    addPeer: ({ state, dispatch, commit }, incomingSignal, peerId, name) => {
       const stream: MediaStream = get(state.stream);
       const peer = new window['SimplePeer']({
         initiator: false,
@@ -84,29 +104,16 @@ export default {
         socket.emit('returning-signal', { peerId, signal, name });
       });
       peer.signal(incomingSignal);
-      state.peers.update((peers) =>
-        peers.add({
-          peerId: peerId,
-          peer,
-          name,
-        })
-      );
+
+      commit('savePeer', peer, peerId, name);
+
       peer.on('stream', (stream) => {
         if (stream.getTracks().length === 2) dispatch('playVideo', stream, peerId);
-        else {
-          dispatch('playShare', peer, stream, peerId, name).then(() => {
-            // if (get(state.sharingScreen)) peer.send(get(state.socket)['id'] + ' sharing screen');
-          });
-        }
+        else dispatch('playShare', peer, stream, peerId, name);
       });
       peer.on('connect', () => {
         if (get(state.sharingScreen)) peer.send(get(state.socket)['id'] + ' sharing screen');
       });
-      // peer.on('track', (track, stream) => {
-      //   console.log('track', track, stream);
-      // });
-
-      // return peer;height
     },
 
     playVideo({ commit }, stream, peerId) {
@@ -116,37 +123,13 @@ export default {
       commit('setPeerMedia', peerId + 'audio', new MediaStream([stream.getAudioTracks()[0]]), {
         muted: false,
       });
-      // if (stream.getVideoTracks()[0].muted) {
-      //   commit('setPeerMedia', peerId, new MediaStream([stream.getAudioTracks()[0]]), {
-      //     muted: false,
-      //   });
-      //   console.log('VidinitVideoeo is muted');
-      //   stream.getVideoTracks()[0].onunmute = () => {
-      //     // console.log('Video has unmuted');
-      //     commit('setPeerMedia', peerId, stream, { muted: false });
-      //   };
-      //   stream.getVideoTracks()[0].onmute = () => {
-      //     // console.log('video MUTED Again', peerId);
-      //     commit('setPeerMedia', peerId, new MediaStream([stream.getAudioTracks()[0]]), {
-      //       muted: false,
-      //     });
-      //   };
-      // } else {
-      //   // console.log('Video not muted');
-      //   commit('setPeerMediaplayScreen', peerId, stream, { muted: false });
-      // }
     },
-    playShare({ state, commit }, peer, stream, peerId, peerName) {
+    playShare({ state, g, commit }, peer, stream, peerId, peerName) {
       let sharing = true;
       peer.on('data', (data) => {
         // console.log('data from', peerId, data);
         if (sharing) {
-          state.screens.update((set) =>
-            set.add({
-              id: 'peer-screen-' + peerId,
-              name: (peerName || 'Anonymous') + '-screen',
-            })
-          );
+          commit('addPeerScreen', peerId, peerName);
           setTimeout(() => {
             commit(
               'setPeerMedia',
@@ -160,11 +143,7 @@ export default {
           }, 100);
           sharing = false;
         } else {
-          state.screens.update((set) => {
-            const screen = Array.from(set).find((i) => i['id'] === 'peer-screen-' + peerId);
-            set.delete(screen);
-            return set;
-          });
+          commit('deletePeerScreen', g, peerId);
           state.notify.info(`${peerName || 'Anonymous'} has stopped started sharing screen`, 7000);
           sharing = true;
         }
@@ -172,15 +151,16 @@ export default {
     },
     togglePing({ state, dispatch }, id) {
       const is_pinged = get(state.pinged) === id;
-      console.log('is_pinged', is_pinged);
       dispatch('setPinged', is_pinged ? '' : id);
     },
-    removePeer: ({ state, g, dispatch }, id) => {
-      const peers: Set<any> = get(state.peers);
-      const peer = Array.from(peers).find((i) => i['peerId'] === id);
-      peers.delete(peer);
-      dispatch('setPeers', peers);
+    removePeer: ({ state, g, commit }, peerId) => {
+      const peer = g('getPeer', peerId);
+      state.peers.update((peers) => {
+        peers.delete(peer);
+        return peers;
+      });
       peer.peer.destroy();
+      commit('deletePeerScreen', g, peerId);
       return peer.name;
     },
   },

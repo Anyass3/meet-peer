@@ -19,8 +19,9 @@ export default {
       const _this: any = this;
       return 'user-' + _this.getUserId(state);
     },
-    getPeerVideoId: (state, peerId) => {
-      return 'peer-' + peerId;
+    getUserScreen(state) {
+      const screens: Set<any> = get(state.screens);
+      return Array.from(screens).find((i) => i['id'] === 'userVideo-share-screen');
     },
   },
   actions: {

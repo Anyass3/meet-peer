@@ -12,7 +12,6 @@ export default {
     sharingScreen: false,
     screenStream: null,
     screens: new Set(),
-    fakeVideoTrack: null,
   },
   mutations: {
     toggleCameraState(state) {
@@ -51,11 +50,8 @@ export default {
       };
       let fakeVideoAudio = (...args) => new MediaStream([fakeVideo(...args), fakeAudio()]);
       const fake_stream = fakeVideoAudio();
-      const screenFakeStream = fakeVideoAudio();
       commit('setStream', fake_stream);
       commit('setScreenStream', new MediaStream([fakeVideo()]));
-      dispatch('setFakeVideoTrack', screenFakeStream.getVideoTracks()[0]);
-      // userVideo = createVideo();
       commit('setUserVideoProp', { srcObject: fake_stream, muted: true });
     },
     async startStreaming({ state, dispatch, commit }, { video = false, audio = false } = {}) {
@@ -88,11 +84,11 @@ export default {
     },
     async captureScreen({ state, dispatch, commit }) {
       let newScreenStream = await navigator.mediaDevices['getDisplayMedia']({ video: true });
-
+      console.log(newScreenStream);
       state.screens.update((set) =>
         set.add({
           id: 'userVideo-share-screen',
-          name: 'My' + ' screen',
+          name: 'My' + ' Screen',
         })
       );
       let screenStream: MediaStream = get(state.screenStream);
@@ -113,22 +109,24 @@ export default {
       // console.log(stream.getVideoTracks());
 
       newScreenStream.getVideoTracks()[0].addEventListener('ended', () => {
-        state.peers.subscribe((peers) =>
-          peers.forEach((p) => {
-            p.peer.send(get(state.socket)['id'] + 'stopped sharing screen');
-          })
-        )();
-        // screenStream.removeTrack(screenStream.getVideoTracks()[0]);
-        state.screens.update((set) => {
-          const screen = Array.from(set).find((i) => i['id'] === 'userVideo-share-screen');
-          set.delete(screen);
-          return set;
-        });
-        dispatch('setSharingScreen', false);
-        state.notify.info('You have stopped sharing your screen');
+        dispatch('endedSharing');
       });
     },
-    toggleShareScreen({ state, dispatch, commit }) {
+    endedSharing({ state, g, dispatch }) {
+      state.peers.subscribe((peers) =>
+        peers.forEach((p) => {
+          p.peer.send(get(state.socket)['id'] + 'stopped sharing screen');
+        })
+      )();
+      state.screens.update((set) => {
+        const screen = Array.from(set).find((i) => i['id'] === 'userVideo-share-screen');
+        set.delete(screen);
+        return set;
+      });
+      dispatch('setSharingScreen', false);
+      state.notify.info('You have stopped sharing your screen');
+    },
+    toggleShareScreen({ state, g, dispatch, commit }) {
       if (!get(state.sharingScreen))
         dispatch('captureScreen')
           .then(() => {
@@ -147,7 +145,12 @@ export default {
           });
       else {
         const screenStream: MediaStream = get(state.screenStream);
+        const screens: Set<string> = get(state.screens);
         screenStream.getTracks().forEach((t) => t.stop());
+        screens.forEach((screen) => {
+          document.getElementById(screen['id'])['srcObject'] = null;
+        });
+        dispatch('endedSharing');
       }
     },
 
