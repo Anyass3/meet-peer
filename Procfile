@@ -1,1 +1,1 @@
-web: node server.js
+web: node __sapper__/build

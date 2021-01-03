@@ -66,11 +66,10 @@ export default {
   },
   actions: {
     createPeer: ({ state, commit, dispatch }, peerId, name) => {
-      const stream: MediaStream = get(state.stream);
       const peer = new window['SimplePeer']({
         initiator: true,
         trickle: true,
-        streams: [stream, get(state.screenStream)],
+        streams: [get(state.stream), get(state.screenStream)],
         config: state.iceConfig,
       });
 
@@ -90,11 +89,10 @@ export default {
     },
     // old comers waiting for signals
     addPeer: ({ state, dispatch, commit }, incomingSignal, peerId, name) => {
-      const stream: MediaStream = get(state.stream);
       const peer = new window['SimplePeer']({
         initiator: false,
         trickle: true,
-        streams: [stream, get(state.screenStream)],
+        streams: [get(state.stream), get(state.screenStream)],
         config: state.iceConfig,
       });
       // peer will not signal now except after
@@ -124,7 +122,7 @@ export default {
         muted: false,
       });
     },
-    playShare({ state, g, commit }, peer, stream, peerId, peerName) {
+    playShare({ state, g, dispatch, commit }, peer, stream, peerId, peerName) {
       let sharing = true;
       peer.on('data', (data) => {
         // console.log('data from', peerId, data);
@@ -141,6 +139,7 @@ export default {
             );
             state.notify.success(`${peerName || 'Anonymous'} started sharing screen`, 7000);
           }, 100);
+          dispatch('togglePing', 'peer-screen-' + peerId);
           sharing = false;
         } else {
           commit('deletePeerScreen', g, peerId);
@@ -150,8 +149,10 @@ export default {
       });
     },
     togglePing({ state, dispatch }, id) {
-      const is_pinged = get(state.pinged) === id;
-      dispatch('setPinged', is_pinged ? '' : id);
+      const was_pinged = get(state.pinged) === id;
+      dispatch('setPinged', was_pinged ? '' : id).then(() => {
+        if (!was_pinged && window) window.scrollTo(0, 0);
+      });
     },
     removePeer: ({ state, g, commit }, peerId) => {
       const peer = g('getPeer', peerId);

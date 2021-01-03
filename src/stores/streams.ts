@@ -54,7 +54,7 @@ export default {
       commit('setScreenStream', new MediaStream([fakeVideo()]));
       commit('setUserVideoProp', { srcObject: fake_stream, muted: true });
     },
-    async startStreaming({ state, dispatch, commit }, { video = false, audio = false } = {}) {
+    async startStreaming({ state, dispatch }, { video = false, audio = false } = {}) {
       if (!!audio && get(state.startedAudioStream)) return;
       if (!!video && get(state.startedVideoStream)) return;
       if (video === false && audio === false) return;
@@ -70,8 +70,6 @@ export default {
         )();
         stream.removeTrack(stream.getVideoTracks()[0]);
         stream.addTrack(newStream.getVideoTracks()[0]);
-        // console.log(stream.getVideoTracks());
-        // commit('setUserVideoProp', { srcObject: new MediaStream([stream]), muted: true });
       } else {
         state.peers.subscribe((peers) =>
           peers.forEach((p) => {
@@ -82,9 +80,8 @@ export default {
         stream.addTrack(newStream.getAudioTracks()[0]);
       }
     },
-    async captureScreen({ state, dispatch, commit }) {
+    async captureScreen({ state, dispatch }) {
       let newScreenStream = await navigator.mediaDevices['getDisplayMedia']({ video: true });
-      console.log(newScreenStream);
       state.screens.update((set) =>
         set.add({
           id: 'userVideo-share-screen',

@@ -35,9 +35,7 @@
     class="{main_class} position-relative  d-flex flex-column b p-0 rounded-lg col-12 {pinged || (user && !inMeet) ? 'order-first vh-90 vh-md-100' : 'col-sm-6 col-md-4 col-lg-3'}"
     style="background:#e3f2fd;{main_style}">
     <span
-        on:click={() => store.dispatch('togglePing', id).then(() => {
-                if (pinged && window) window.scrollTo(0, 0);
-            })}
+        on:click={() => store.dispatch('togglePing', id)}
         class="position-absolute"
         style="z-index:30;">
         <Ping

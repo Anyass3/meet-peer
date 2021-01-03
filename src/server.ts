@@ -32,7 +32,9 @@ pem.createCertificate({ days: 1, selfSigned: true }, (err, keys) => {
     })
     .use(compression({ threshold: 0 }), sirv('static', { dev }), sapper.middleware());
 
-  server.listen(PORT);
+  server.listen(PORT, () => {
+    console.log('server is https => selfSigned certificate');
+  });
 
   io.on('connection', (socket) => {
     // console.log('socket connected', socket.id);
@@ -84,7 +86,6 @@ pem.createCertificate({ days: 1, selfSigned: true }, (err, keys) => {
     socket.on('disconnect', () => {
       const roomId = peerRoom[socket.id];
       const room = Rooms[roomId];
-      console.log(roomId, room, Rooms);
       if (room) {
         Rooms[roomId] = room.filter((i) => i.id !== socket.id);
         Rooms[roomId].forEach((s) => io.to(s.id).emit('peer-left', socket.id));
