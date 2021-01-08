@@ -109,7 +109,16 @@ export default {
         dispatch('endedSharing');
       });
     },
-    endedSharing({ state, g, dispatch }) {
+    endScreenShare({ state, dispatch }) {
+      const screenStream: MediaStream = get(state.screenStream);
+      const screens: Set<string> = get(state.screens);
+      screenStream.getTracks().forEach((t) => t.stop());
+      screens.forEach((screen) => {
+        document.getElementById(screen['id'])['srcObject'] = null;
+      });
+      dispatch('endedSharing');
+    },
+    endedSharing({ state, dispatch }) {
       state.peers.subscribe((peers) =>
         peers.forEach((p) => {
           p.peer.send(get(state.socket)['id'] + 'stopped sharing screen');
@@ -123,7 +132,7 @@ export default {
       dispatch('setSharingScreen', false);
       state.notify.info('You have stopped sharing your screen');
     },
-    toggleShareScreen({ state, g, dispatch, commit }) {
+    toggleShareScreen({ state, dispatch }) {
       if (!get(state.sharingScreen))
         dispatch('captureScreen')
           .then(() => {
@@ -140,15 +149,7 @@ export default {
             state.notify.danger(`${err.name}: ${err.message}`, 5000);
             console.log(err.name, err.message);
           });
-      else {
-        const screenStream: MediaStream = get(state.screenStream);
-        const screens: Set<string> = get(state.screens);
-        screenStream.getTracks().forEach((t) => t.stop());
-        screens.forEach((screen) => {
-          document.getElementById(screen['id'])['srcObject'] = null;
-        });
-        dispatch('endedSharing');
-      }
+      else dispatch('endScreenShare');
     },
 
     enableMic({ state, dispatch, commit }, v = true) {

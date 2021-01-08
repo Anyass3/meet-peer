@@ -11,7 +11,12 @@
     } from "svelte-feather-icons";
     export let cls = "";
     export let style = "";
-    const { toggleCamera, toggleMic, toggleShareScreen } = store.actions;
+    const {
+        toggleCamera,
+        toggleMic,
+        toggleShareScreen,
+        endScreenShare,
+    } = store.actions;
     const { getCameraState, getMicState, getSharingScreen } = store.getters;
     const camera = getCameraState(),
         mic = getMicState(),
@@ -27,6 +32,7 @@
                         .dispatch("leaveMeet")
                         .then(() => store.commit("setEnteredRoom", false))
                 );
+            if ($sharingScreen) endScreenShare();
         }, 5000)();
     $: cam_color = $camera === "on" ? "success" : "danger";
     $: mic_color = $mic === "on" ? "success" : "danger";

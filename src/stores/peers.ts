@@ -84,7 +84,7 @@ export default {
       commit('savePeer', peer, peerId, name);
       peer.on('stream', (stream) => {
         if (stream.getTracks().length === 2) dispatch('playVideo', stream, peerId);
-        else dispatch('playShare', peer, stream, peerId);
+        else dispatch('playShare', peer, stream, peerId, name);
       });
     },
     // old comers waiting for signals
