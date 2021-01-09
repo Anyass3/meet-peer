@@ -1,6 +1,8 @@
 <script lang="ts">
+	import { goto } from "@sapper/app";
 	import Nav from "../components/Nav.svelte";
 	export let segment: string;
+	let roomId = "";
 	// import { onMount } from "svelte";
 	// let socket;
 	// onMount(() => {
@@ -25,17 +27,25 @@
 		<div class="m-auto">
 			<a
 				href="/new-room"
-				class="btn btn-link"
+				class="btn btn-link lead"
 				style="font-size: 20px;">create new room</a>
 
 			<p>OR</p>
 
 			<div class="mt-4">
-				<input id="join-code" class="form-control" type="text" />
-				<button
+				<input
+					id="join-code"
+					bind:value={roomId}
+					class="form-control"
+					on:keydown={(ev) => {
+						if (ev.key === 'Enter') goto(`/room/${roomId}`);
+					}}
+					type="text" />
+				<a
+					class:disabled={!roomId}
 					class="btn btn-primary mt-2"
 					id="join-room"
-					to="/room">join with code</button>
+					href="/room/{roomId}">join with room ID</a>
 			</div>
 		</div>
 	</div>

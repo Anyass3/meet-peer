@@ -38,6 +38,7 @@ export default {
       const media: any = document.getElementById('peer' + id);
       media.srcObject = mediaStream;
       for (let prop in options) media[prop] = options[prop];
+      media.play();
     },
     deletePeerScreen(state, g, peerId) {
       state.screens.update((set) => {
