@@ -69,12 +69,11 @@
 			"setUserVideo",
 			document.querySelector("[aria-label='userVideo']")
 		);
-		store.dispatch("fakeStream").then(
-			() => 0 //join_meet(params.roomId)
-			// store
-			// 	.dispatch("toggleCamera")
+		store.dispatch("fakeStream").then(() => {
+			// join_meet(params.roomId);
+			// store.dispatch("toggleCamera");
 			// 	.then(() => store.dispatch("toggleMic").then(() => 0))
-		);
+		});
 	});
 </script>
 
