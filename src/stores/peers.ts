@@ -38,6 +38,7 @@ export default {
       const media: any = document.getElementById('peer' + id);
       media.srcObject = mediaStream;
       for (let prop in options) media[prop] = options[prop];
+      media.play();
     },
     deletePeerScreen(state, g, peerId) {
       state.screens.update((set) => {
@@ -84,7 +85,7 @@ export default {
       commit('savePeer', peer, peerId, name);
       peer.on('stream', (stream) => {
         if (stream.getTracks().length === 2) dispatch('playVideo', stream, peerId);
-        else dispatch('playShare', peer, stream, peerId);
+        else dispatch('playShare', peer, stream, peerId, name);
       });
     },
     // old comers waiting for signals

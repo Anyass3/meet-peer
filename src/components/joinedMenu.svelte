@@ -11,7 +11,13 @@
     } from "svelte-feather-icons";
     export let cls = "";
     export let style = "";
-    const { toggleCamera, toggleMic, toggleShareScreen } = store.actions;
+    const {
+        toggleCamera,
+        toggleMic,
+        toggleShareScreen,
+        endScreenShare,
+        endMediaStream,
+    } = store.actions;
     const { getCameraState, getMicState, getSharingScreen } = store.getters;
     const camera = getCameraState(),
         mic = getMicState(),
@@ -27,13 +33,12 @@
                         .dispatch("leaveMeet")
                         .then(() => store.commit("setEnteredRoom", false))
                 );
+            if ($sharingScreen) endScreenShare();
+            endMediaStream();
         }, 5000)();
     $: cam_color = $camera === "on" ? "success" : "danger";
     $: mic_color = $mic === "on" ? "success" : "danger";
 </script>
-
-<style>
-</style>
 
 <div
     class=" mt-2 w-100 d-flex justify-between p-2 {cls}"
@@ -65,7 +70,6 @@
         <span on:click={leave_meet} class=" ">
             <LogOutIcon
                 size="2x"
-                style="background-color: #ffebbe;"
                 class="btn btn-light text-danger  lead3  b border-danger" /></span>
         <!-- <span on:click={toggleMic} class="btn btn-{mic_color} ">mic</span> -->
     </div>
