@@ -34,6 +34,7 @@
 		getUserName,
 		getReconnecting,
 		getScreens,
+		getPinged,
 	} = store.getters;
 
 	const peers = getPeers(),
@@ -41,29 +42,20 @@
 		name = getUserName(),
 		reconnecting = getReconnecting(),
 		sendingJoinRequest = getJoinRequest(),
-		screens = getScreens();
+		screens = getScreens(),
+		pinged = getPinged();
 
 	let id,
-		maxH,
-		bProp = {},
 		join_meet_text = "Enter Meet Now";
 	$: join_meet_text = $sendingJoinRequest
 		? "Connecting..."
 		: "Enter Meet Now";
-	$: bProp = $sendingJoinRequest ? { disabled: true } : {};
 	$: id = getUserId();
 
 	// initiator
-	const join_meet = (ev) =>
-		throttle(() => {
-			store.commit("setJoinRequest", true);
-			store.dispatch("joinMeet", params.roomId);
-
-			// document.querySelector("#joinMeet").setAttribute('disabled','')
-		}, 5000)();
 
 	onMount(() => {
-		maxH = `${innerWidth} ${innerHeight} ${innerWidth / innerHeight}`;
+		store.commit("setRoomId", params.roomId);
 		store.dispatch("setAspectRatio", innerWidth / innerHeight);
 		store.dispatch(
 			"setUserVideo",
@@ -114,44 +106,31 @@
 			</div>
 		{/if}
 	</div>
-	<div class="d-flex justify-around flex-wrap h-100">
+	<div class="d-flex justify-around flex-column flex-md-row h-100">
 		<div class="container flex-grow-1 pb-5 mw-100">
-			<div class="row g-1 as-center  justify-center mw-100 m-0 mh-100">
+			<div
+				class="row g-1 as-center justify-center m-0"
+				class:h-100={!$inMeet}
+				class:g-1={!$pinged}>
 				{#each [...$screens] as { id, name } (id)}
-					<Video main_class="" {id} main_style="" {name} />
+					<Video {id} {name} />
 				{/each}
 				{#each [...$peers] as peer (peer.peerId)}
-					<Video
-						main_class=""
-						id={'peer' + peer.peerId}
-						main_style=""
-						name={peer.name} />
+					<Video id={'peer' + peer.peerId} name={peer.name} />
 				{/each}
-				<Video
-					{id}
-					name={$name}
-					inMeet={$inMeet}
-					vid_class=""
-					main_class=""
-					main_style={false ? `height:${maxH ? maxH - maxH * 0.25 + 'px' : '90%'}` : ''}
-					user />
-				<!-- {#each '    ' as i}
-					<Video
-						main_style="flex-basis:400px"
-						main_class="flex-grow-1 flex-shrink-1 m-1" />
-				{/each} -->
+				<Video {id} name={$name} inMeet={$inMeet} user />
 			</div>
 		</div>
 		{#if !$inMeet}
 			<div class="as-center d-flex justify-center">
-				<button
-					{...bProp}
+				<a
+					class:disabled={$sendingJoinRequest}
 					id="joinMeet"
 					class="btn btn-success w-100"
-					on:click={join_meet}
+					on:click={throttle(() => store.dispatch('joinMeet'))}
 					style="margin: 20px;">
 					{join_meet_text}
-				</button>
+				</a>
 			</div>
 		{/if}
 	</div>
