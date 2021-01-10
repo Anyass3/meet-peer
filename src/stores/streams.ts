@@ -41,7 +41,7 @@ export default {
         let canvas = document.createElement('canvas');
         canvas.getContext('2d').fillRect(0, 0, width, height);
         let stream = canvas['captureStream']();
-        return Object.assign(stream.getVideoTracks()[0], { enabled: false, contentHint: 'Fake' });
+        return Object.assign(stream.getVideoTracks()[0], { enabled: false });
       };
       let fakeVideoAudio = (...args) => new MediaStream([fakeVideo(...args), fakeAudio()]);
       const fake_stream = fakeVideoAudio();
@@ -108,8 +108,13 @@ export default {
         .catch((err) => dispatch('showRequestDeviceError', err, 'Microphone'));
     },
     enableCamera({ state, dispatch, commit }, v = true) {
+      const aspect_ratio = outerWidth / outerHeight;
+      const ideal_width = aspect_ratio < 1 ? 900 : 4096;
       dispatch('startMediaStream', {
-        video: true,
+        video: {
+          width: { ideal: ideal_width },
+          aspectRatio: aspect_ratio < 1 ? 1 : aspect_ratio,
+        },
       })
         .then(() => {
           get(state.stream)

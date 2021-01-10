@@ -51,7 +51,7 @@ export default {
       state.screens.update((set) =>
         set.add({
           id: 'peer-screen-' + peerId,
-          name: (peerName || 'Anonymous') + '(Screen)',
+          name: peerName + '(Screen)',
         })
       );
     },
@@ -138,13 +138,13 @@ export default {
                 muted: true,
               }
             );
-            state.notify.success(`${peerName || 'Anonymous'} started sharing screen`, 7000);
+            state.notify.success(`${peerName} started sharing screen`, 7000);
           }, 100);
           dispatch('togglePing', 'peer-screen-' + peerId);
           sharing = false;
         } else {
           commit('deletePeerScreen', g, peerId);
-          state.notify.info(`${peerName || 'Anonymous'} has stopped started sharing screen`, 7000);
+          state.notify.info(`${peerName} has stopped started sharing screen`, 7000);
           sharing = true;
         }
       });
