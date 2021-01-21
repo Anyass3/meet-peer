@@ -40,6 +40,9 @@ export default {
       commit('setJoinRequest', true);
       const socket: Socket = io.io('/');
       dispatch('setSocket', socket);
+      socket.on('error', (error) => {
+        console.log(error);
+      });
       socket.on('connect', () => {
         if (get(state.joinRequest)) {
           socket.emit('join-room', { roomId: state.roomId, name: get(state.userName) });
@@ -86,10 +89,10 @@ export default {
         });
       });
       socket.on('notAllowed-room-full', (name) => {
-        state.notify.info(`${name || 'Someone'} wanted to join but room is already full`);
+        state.notify.info(`${name} wanted to join but room is already full`);
       });
-      socket.on('disconnect', () => {
-        console.log('socket disconnected');
+      socket.on('disconnect', (reason) => {
+        console.log('socket disconnected: ', reason);
         const peers: any = get(state.peers);
         peers.forEach((p) => {
           dispatch('removePeer', p.peerId);
@@ -101,12 +104,15 @@ export default {
           setTimeout(() => {
             if (socket.disconnected) {
               dispatch('setReconnecting', false).then(() => dispatch('leaveMeet'));
-              console.log('socket.disconnected)');
-            }
-          }, 50000);
+              console.log('socket.disconnected leaving meet');
+            } else console.log('socket has re-connected re-joining meet');
+          }, 10000);
         }
 
         console.log('socket disconnected');
+      });
+      socket.on('reconnect-attempt', (reason) => {
+        console.log('reconnecting-attempt', reason);
       });
     },
     leaveMeet: ({ state, commit, dispatch }) => {

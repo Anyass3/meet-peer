@@ -23,7 +23,7 @@ export default {
     setUserVideoProp(state, props: object) {
       const video: HTMLVideoElement = get(state.userVideo);
       for (let prop in props) video[prop] = props[prop];
-      video.play();
+      return video;
     },
   },
 
@@ -47,7 +47,10 @@ export default {
       const fake_stream = fakeVideoAudio();
       commit('setStream', fake_stream);
       commit('setScreenStream', new MediaStream([fakeVideo()]));
-      commit('setUserVideoProp', { srcObject: fake_stream, muted: true });
+      const video = commit('setUserVideoProp', { srcObject: fake_stream, muted: true });
+      try {
+        video.play();
+      } catch (error) {}
     },
     showRequestDeviceError({ state }, err, device) {
       let msg = err.message;

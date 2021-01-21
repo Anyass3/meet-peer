@@ -24,7 +24,7 @@ pem.createCertificate({ days: 1, selfSigned: true }, (err, keys) => {
   };
 
   const server = require('https').createServer(options, app);
-  const io = require('socket.io')(server);
+  const io = require('socket.io')(server, { pingTimeout: 90000 });
   app
     .get('/new-room', (req, res) => {
       res.redirect(`room/${uid()}`);
@@ -32,7 +32,7 @@ pem.createCertificate({ days: 1, selfSigned: true }, (err, keys) => {
     })
     .use(compression({ threshold: 0 }), sirv('static', { dev }), sapper.middleware());
 
-  server.listen(PORT, () => {
+  server.listen(PORT, '0.0.0.0', () => {
     console.log('server is https => selfSigned certificate');
   });
 
@@ -83,14 +83,22 @@ pem.createCertificate({ days: 1, selfSigned: true }, (err, keys) => {
         name: payload.name,
       });
     });
-    socket.on('disconnect', () => {
+    const removeDisconnected = (socket) => {
       const roomId = peerRoom[socket.id];
       const room = Rooms[roomId];
       if (room) {
         Rooms[roomId] = room.filter((i) => i.id !== socket.id);
+        // socket.broadcast.emit('peer-left', socket.id);
         Rooms[roomId].forEach((s) => io.to(s.id).emit('peer-left', socket.id));
       }
-      // console.log(socket.id, 'disconnected');
+    };
+    socket.on('user-left', () => {
+      removeDisconnected(socket);
+      console.log(socket.id, 'user-left');
+    });
+    socket.on('disconnect', (reason) => {
+      removeDisconnected(socket);
+      console.log(socket.id, 'disconnected:', reason);
     });
   });
 });
