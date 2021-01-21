@@ -47,10 +47,9 @@ def setup():
 
         print()
 
-        return [('#listening-ip=172.17.19.101', f'listening-ip={ip}'),('^#external-ip=[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$', f'#external-ip={external_ip}'), ('#listening-port=3478', f'listening-port={port}'),
-                ('#user=username1:password1',f'user={username}:{password}'),
-            ('#fingerprint','fingerprint'), ('#realm=mycompany.org', f'realm={realm}'),('#verbose','verbose'),
-                ('#allow-loopback-peers', 'no-loopback-peers'),('#no-loopback-peers', 'no-loopback-peers'),('#lt-cred-mech','lt-cred-mech')]
+        return [('#listening-ip=172.17.19.101', f'listening-ip={ip}'), ('^#external-ip=[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$', f'external-ip={external_ip}'),
+        ('#listening-port=3478', f'listening-port={port}'), ('#user=username1:password1',f'user={username}:{password}'),
+            ('#fingerprint','fingerprint'), ('#realm=[a-z\.]+', f'realm={realm}'),('#verbose','verbose'),('#lt-cred-mech','lt-cred-mech')]
 
     def set_configs():
         configs_file=read_config_file()
@@ -84,7 +83,7 @@ def setup():
 
             you can now start the server as:
 
-                sudo turnserver -o
+                sudo turnserver -o -a -f
                 OR
                 systemctl start coturn
             *** stun/turn server is ready ***

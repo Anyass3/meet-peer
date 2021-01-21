@@ -57,7 +57,7 @@ you can now start the server as:
 
 ```
 
-    sudo turnserver -o
+    sudo turnserver -o -a -f
     OR
     systemctl start coturn
 *** stun/turn server is ready ***
