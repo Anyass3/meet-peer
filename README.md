@@ -21,9 +21,9 @@ sudo apt-get install coturn
 
 ```
 
-```
-edit /etc/turnserver.conf and uncomment the following and changing the ones in bold.
 
+edit /etc/turnserver.conf and uncomment the following and changing the ones in bold.
+```
 #listening-ip=Your Private IP // if you have one else it defaults to listenting to all ipv4 ipv6 addresses
 
 #external-ip=Your Public IP
@@ -53,7 +53,7 @@ just run:
 
 and follow the setup and you are done
 
-you can now start the server as:
+## You can now start the server as:
 
 ```
 
