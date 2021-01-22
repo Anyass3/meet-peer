@@ -1,6 +1,10 @@
+### This is a seeya re-write in sapper, but it's going to be use svelte@next(sveltekit) soon.
+
+[Seeya Meet demo](https://seeya-meet.herokuapp.com)
+
 ### Running the project
 
-, install dependencies and run the project in development mode:
+install dependencies and run the project in development mode:
 
 ```bash
 npm install # or yarn
