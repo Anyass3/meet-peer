@@ -38,8 +38,8 @@ edit /etc/turnserver.conf and uncomment the following and changing the ones in b
 
 #verbose
 
-change this #allow-loopback-peers => no-loopback-peers
-or if #no-loopback-peers uncomment it
+
+if #no-loopback-peers uncomment it
 
 #lt-cred-mech
 ```
@@ -66,7 +66,8 @@ to run coturn as a service:
     '#TURNSERVER_ENABLED=1'
 
 example ice config:
-iceConfig: {
+
+ iceConfig: {
     iceServers: [
         { urls: 'stun:public_ip:3478' },
         {
@@ -80,11 +81,11 @@ iceConfig: {
 
 if you have a fully funtional domain name:
 
-    you can create a subdomain for your server.
+    you may create a subdomain for your server.
 
     eg: turn.my_domain.com
 
-Your domain or sub-domain should resolve stun/Turn server's external_ip/public_ip
+Your domain or sub-domain should resolve your stun/Turn server's external_ip/public_ip
 
 also you may need to use let's encrypt to generate free tls certificates perhaps you know better than me.
 
