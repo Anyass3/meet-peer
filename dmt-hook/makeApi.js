@@ -1,16 +1,20 @@
 export default function makeApi(store) {
   return {
-    join() {
-      console.log("SUCCESSFUL CALL");
-      // const result = getMatchingConnection({ store, deviceDir, connectionId });
-      // if (result) {
-      //   const { matchingDevice, matchingConnection } = result;
-      //   if (!matchingConnection) {
-      //     matchingDevice.connect.push(connectionId.toLowerCase());
-      //     matchingDevice.connect.sort();
-      //     store.announceStateChange();
-      //   }
-      // }
+    join({ roomId, peerId }) {
+      const { state } = store;
+
+      if (state.rooms) {
+        const room = state.rooms.find(room => room.roomId == roomId);
+
+        room.participants = room.participants || [];
+
+        if (room) {
+          if (!room.participants.find(peerName => peerId == peerName)) {
+            room.participants.push(peerId);
+            store.announceStateChange();
+          }
+        }
+      }
     }
   };
 }
