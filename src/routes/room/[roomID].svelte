@@ -1,161 +1,128 @@
 <script context="module" lang="ts">
-	export async function preload({ params }) {
-		// the `slug` parameter is available because
-		// this file is called [slug].svelte
-		// const res = await this.fetch(`blog/${params.slug}.json`);
-		// const data = await res.json();
+  export async function preload({ params }) {
+    // the `slug` parameter is available because
+    // this file is called [slug].svelte
+    // const res = await this.fetch(`blog/${params.slug}.json`);
+    // const data = await res.json();
 
-		// if (res.status === 200) {
-		// 	return { post: data };
-		// } else {
-		// 	this.error(res.status, data.message);
-		// }
-		return {
-			params: { roomId: params.roomID },
-		};
-	}
+    // if (res.status === 200) {
+    // 	return { post: data };
+    // } else {
+    // 	this.error(res.status, data.message);
+    // }
+    return {
+      params: { roomId: params.roomID },
+    };
+  }
 </script>
 
 <script lang="ts">
-	// const SimplePeer = require("simple-peer");
-	import { onMount } from "svelte";
-	// import io from "socket.io-client";
-	export let params: { roomId: string };
-	import store from "../../stores";
-	import Video from "../../components/video.svelte";
-	import JoinedMenu from "../../components/joinedMenu.svelte";
-	import { throttle } from "../../utils";
-	import { NotificationDisplay } from "@beyonk/svelte-notifications";
-	const {
-		getUserId,
-		getPeers,
-		getEnteredRoom,
-		getJoinRequest,
-		getUserName,
-		getReconnecting,
-		getScreens,
-	} = store.getters;
+  // const SimplePeer = require("simple-peer");
+  import { onMount } from 'svelte';
+  // import io from "socket.io-client";
+  export let params: { roomId: string };
+  import store from '../../stores';
+  import Video from '../../components/video.svelte';
+  import JoinedMenu from '../../components/joinedMenu.svelte';
+  import { throttle } from '../../utils';
+  import { NotificationDisplay } from '@beyonk/svelte-notifications';
+  const {
+    getUserId,
+    getPeers,
+    getEnteredRoom,
+    getJoinRequest,
+    getUserName,
+    getReconnecting,
+    getScreens,
+    getPinged,
+  } = store.getters;
 
-	const peers = getPeers(),
-		inMeet = getEnteredRoom(),
-		name = getUserName(),
-		reconnecting = getReconnecting(),
-		sendingJoinRequest = getJoinRequest(),
-		screens = getScreens();
+  const peers = getPeers(),
+    inMeet = getEnteredRoom(),
+    name = getUserName(),
+    reconnecting = getReconnecting(),
+    sendingJoinRequest = getJoinRequest(),
+    screens = getScreens(),
+    pinged = getPinged();
 
-	let id,
-		maxH,
-		bProp = {},
-		join_meet_text = "Enter Meet Now";
-	$: join_meet_text = $sendingJoinRequest
-		? "Connecting..."
-		: "Enter Meet Now";
-	$: bProp = $sendingJoinRequest ? { disabled: true } : {};
-	$: id = getUserId();
+  let id,
+    join_meet_text = 'Enter Meet Now';
+  $: join_meet_text = $sendingJoinRequest ? 'Connecting...' : 'Enter Meet Now';
+  $: id = getUserId();
 
-	// initiator
-	const join_meet = (ev) =>
-		throttle(() => {
-			store.commit("setJoinRequest", true);
-			store.dispatch("joinMeet", params.roomId);
+  // initiator
 
-			// document.querySelector("#joinMeet").setAttribute('disabled','')
-		}, 5000)();
-
-	onMount(() => {
-		maxH = `${innerWidth} ${innerHeight} ${innerWidth / innerHeight}`;
-		store.dispatch("setAspectRatio", innerWidth / innerHeight);
-		store.dispatch(
-			"setUserVideo",
-			document.querySelector("[aria-label='userVideo']")
-		);
-		store.dispatch("fakeStream").then(() => {
-			// join_meet(params.roomId);
-			// store.dispatch("toggleCamera");
-			// 	.then(() => store.dispatch("toggleMic").then(() => 0))
-		});
-	});
+  onMount(() => {
+    store.commit('setRoomId', params.roomId);
+    store.dispatch('setAspectRatio', innerWidth / innerHeight);
+    store.dispatch('setUserVideo', document.querySelector("[aria-label='userVideo']"));
+    store.dispatch('fakeStream').then(() => {
+      // join_meet(params.roomId);
+      // store.dispatch("toggleCamera");
+      // 	.then(() => store.dispatch("toggleMic").then(() => 0))
+    });
+  });
 </script>
 
+<svelte:head
+  ><script defer src="/simplepeer.min.js">
+  </script></svelte:head
+>
+<NotificationDisplay />
+<main class="vh-100 vw-100 m-0 position-relative bg-light">
+  <div style="z-index:20" class="w-100 p-0 m-0 position-fixed d-flex justify-center">
+    {#if !$inMeet}
+      <h1 style="text-align: center;opacity:.5;" class="text-muted">Peer Meet Room</h1>
+    {/if}
+    {#if $reconnecting}
+      <div class="alert d-block alert-danger lead">
+        <p>reconnecting...</p>
+      </div>
+    {/if}
+  </div>
+  <div class="d-flex flex-column flex-md-row h-100" class:justify-around={!$inMeet}>
+    <div class="container flex-grow-1 pb-5 mw-100">
+      <div class="row g-1 as-center justify-center m-0" class:h-100={!$inMeet} class:g-1={!$pinged}>
+        {#each [...$screens] as { id, name } (id)}
+          <Video {id} {name} />
+        {/each}
+        {#each [...$peers] as peer (peer.peerId)}
+          <Video id={'peer' + peer.peerId} name={peer.name} />
+        {/each}
+        <Video {id} name={$name} inMeet={$inMeet} user />
+      </div>
+    </div>
+    {#if !$inMeet}
+      <div class="as-center d-flex justify-center">
+        <a
+          class:disabled={$sendingJoinRequest}
+          id="joinMeet"
+          class="btn btn-success w-100"
+          on:click={throttle(() => store.dispatch('joinMeet'))}
+          style="margin: 20px;">
+          {join_meet_text}
+        </a>
+      </div>
+    {/if}
+  </div>
+  {#if $inMeet}
+    <JoinedMenu cls="position-fixed" style="bottom:0;left:0;right:0" />
+  {/if}
+</main>
+
 <style>
-	/* :global(body) {
+  /* :global(body) {
 		background: #e1f5fe;
 	} */
 
-	:global(button):active {
-		transform: scale(0.9);
-		transition: none;
-	}
-	:global(html) {
-		margin: 0 !important;
-	}
-	:global(body) {
-		margin: 0 !important;
-	}
+  :global(button):active {
+    transform: scale(0.9);
+    transition: none;
+  }
+  :global(html) {
+    margin: 0 !important;
+  }
+  :global(body) {
+    margin: 0 !important;
+  }
 </style>
-
-<svelte:head>
-	<script defer src="/simplepeer.min.js">
-	</script>
-</svelte:head>
-<NotificationDisplay />
-<main class="vh-100 vw-100 m-0 position-relative bg-light">
-	<div
-		style="z-index:20"
-		class="w-100 p-0 m-0 position-fixed d-flex justify-center">
-		{#if !$inMeet}
-			<h1 style="text-align: center;opacity:.5;" class="text-muted">
-				Peer Meet Room
-			</h1>
-		{/if}
-		{#if $reconnecting}
-			<div class="alert d-block alert-danger lead">
-				<p>reconnecting...</p>
-			</div>
-		{/if}
-	</div>
-	<div class="d-flex justify-around flex-wrap h-100">
-		<div class="container flex-grow-1 pb-5 mw-100">
-			<div class="row g-1 as-center  justify-center mw-100 m-0 mh-100">
-				{#each [...$screens] as { id, name } (id)}
-					<Video main_class="" {id} main_style="" {name} />
-				{/each}
-				{#each [...$peers] as peer (peer.peerId)}
-					<Video
-						main_class=""
-						id={'peer' + peer.peerId}
-						main_style=""
-						name={peer.name} />
-				{/each}
-				<Video
-					{id}
-					name={$name}
-					inMeet={$inMeet}
-					vid_class=""
-					main_class=""
-					main_style={false ? `height:${maxH ? maxH - maxH * 0.25 + 'px' : '90%'}` : ''}
-					user />
-				<!-- {#each '    ' as i}
-					<Video
-						main_style="flex-basis:400px"
-						main_class="flex-grow-1 flex-shrink-1 m-1" />
-				{/each} -->
-			</div>
-		</div>
-		{#if !$inMeet}
-			<div class="as-center d-flex justify-center">
-				<button
-					{...bProp}
-					id="joinMeet"
-					class="btn btn-success w-100"
-					on:click={join_meet}
-					style="margin: 20px;">
-					{join_meet_text}
-				</button>
-			</div>
-		{/if}
-	</div>
-	{#if $inMeet}
-		<JoinedMenu cls="position-fixed" style="bottom:0;left:0;right:0" />
-	{/if}
-</main>

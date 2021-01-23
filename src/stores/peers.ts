@@ -38,7 +38,7 @@ export default {
       const media: any = document.getElementById('peer' + id);
       media.srcObject = mediaStream;
       for (let prop in options) media[prop] = options[prop];
-      media.play();
+      return media;
     },
     deletePeerScreen(state, g, peerId) {
       state.screens.update((set) => {
@@ -51,7 +51,7 @@ export default {
       state.screens.update((set) =>
         set.add({
           id: 'peer-screen-' + peerId,
-          name: (peerName || 'Anonymous') + '(Screen)',
+          name: peerName + '(Screen)',
         })
       );
     },
@@ -66,6 +66,8 @@ export default {
     },
   },
   actions: {
+    // this user creates an offer to a peer
+    // new comers notifying old comers of the by signaling
     createPeer: ({ state, commit, dispatch }, peerId, name) => {
       const peer = new window['SimplePeer']({
         initiator: true,
@@ -73,7 +75,11 @@ export default {
         streams: [get(state.stream), get(state.screenStream)],
         config: state.iceConfig,
       });
+      // window['peer'] = peer._pc;
 
+      //this peer is already in the meet
+      //I have to initiate({ initiator: true, }) so it will signal as soon as created
+      //this to inform it that I have just joined so it can call addPeer
       peer.on('signal', (signal) => {
         const socket: Socket = get(state.socket);
         socket.emit('signaling-peer', {
@@ -87,7 +93,16 @@ export default {
         if (stream.getTracks().length === 2) dispatch('playVideo', stream, peerId);
         else dispatch('playShare', peer, stream, peerId, name);
       });
+      peer.on('error', (error) => {
+        if (error.code === 'ERR_CONNECTION_FAILURE') {
+          // const socket: Socket = get(state.socket);
+          // window['sk'] = socket;
+          // state.notifier.warning('Connection failure')
+        }
+        console.error('peer-error:', error.code);
+      });
     },
+    // this user creates an answer to a peer who sends an offer
     // old comers waiting for signals
     addPeer: ({ state, dispatch, commit }, incomingSignal, peerId, name) => {
       const peer = new window['SimplePeer']({
@@ -96,12 +111,15 @@ export default {
         streams: [get(state.stream), get(state.screenStream)],
         config: state.iceConfig,
       });
+
+      // window['peer'] = peer._pc;
       // peer will not signal now except after
-      // being signaled by this user
+      // being signaled by this user because { initiator: false,}
       peer.on('signal', (signal) => {
         const socket: Socket = get(state.socket);
         socket.emit('returning-signal', { peerId, signal, name });
       });
+
       peer.signal(incomingSignal);
 
       commit('savePeer', peer, peerId, name);
@@ -113,15 +131,34 @@ export default {
       peer.on('connect', () => {
         if (get(state.sharingScreen)) peer.send(get(state.socket)['id'] + ' sharing screen');
       });
+      peer.on('error', (error) => {
+        if (error.code === 'ERR_CONNECTION_FAILURE') {
+          // const socket: Socket = get(state.socket);
+          // window['sk'] = socket;
+        }
+        console.error('peer-error:', error.code);
+      });
     },
 
     playVideo({ commit }, stream, peerId) {
-      commit('setPeerMedia', peerId, new MediaStream([stream.getVideoTracks()[0]]), {
+      const video = commit('setPeerMedia', peerId, new MediaStream([stream.getVideoTracks()[0]]), {
         muted: true,
       });
-      commit('setPeerMedia', peerId + 'audio', new MediaStream([stream.getAudioTracks()[0]]), {
-        muted: false,
-      });
+      const audio = commit(
+        'setPeerMedia',
+        peerId + 'audio',
+        new MediaStream([stream.getAudioTracks()[0]]),
+        {
+          muted: false,
+        }
+      );
+
+      try {
+        video.play();
+      } catch (error) {}
+      try {
+        audio.play();
+      } catch (error) {}
     },
     playShare({ state, g, dispatch, commit }, peer, stream, peerId, peerName) {
       let sharing = true;
@@ -130,7 +167,7 @@ export default {
         if (sharing) {
           commit('addPeerScreen', peerId, peerName);
           setTimeout(() => {
-            commit(
+            const video = commit(
               'setPeerMedia',
               '-screen-' + peerId,
               new MediaStream([stream.getVideoTracks()[0]]),
@@ -138,13 +175,16 @@ export default {
                 muted: true,
               }
             );
-            state.notify.success(`${peerName || 'Anonymous'} started sharing screen`, 7000);
+            try {
+              video.play();
+            } catch (error) {}
+            state.notify.success(`${peerName} started sharing screen`, 7000);
           }, 100);
           dispatch('togglePing', 'peer-screen-' + peerId);
           sharing = false;
         } else {
           commit('deletePeerScreen', g, peerId);
-          state.notify.info(`${peerName || 'Anonymous'} has stopped started sharing screen`, 7000);
+          state.notify.info(`${peerName} has stopped started sharing screen`, 7000);
           sharing = true;
         }
       });

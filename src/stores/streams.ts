@@ -23,7 +23,7 @@ export default {
     setUserVideoProp(state, props: object) {
       const video: HTMLVideoElement = get(state.userVideo);
       for (let prop in props) video[prop] = props[prop];
-      video.play();
+      return video;
     },
   },
 
@@ -41,13 +41,16 @@ export default {
         let canvas = document.createElement('canvas');
         canvas.getContext('2d').fillRect(0, 0, width, height);
         let stream = canvas['captureStream']();
-        return Object.assign(stream.getVideoTracks()[0], { enabled: false, contentHint: 'Fake' });
+        return Object.assign(stream.getVideoTracks()[0], { enabled: false });
       };
       let fakeVideoAudio = (...args) => new MediaStream([fakeVideo(...args), fakeAudio()]);
       const fake_stream = fakeVideoAudio();
       commit('setStream', fake_stream);
       commit('setScreenStream', new MediaStream([fakeVideo()]));
-      commit('setUserVideoProp', { srcObject: fake_stream, muted: true });
+      const video = commit('setUserVideoProp', { srcObject: fake_stream, muted: true });
+      try {
+        video.play();
+      } catch (error) {}
     },
     showRequestDeviceError({ state }, err, device) {
       let msg = err.message;
@@ -108,8 +111,13 @@ export default {
         .catch((err) => dispatch('showRequestDeviceError', err, 'Microphone'));
     },
     enableCamera({ state, dispatch, commit }, v = true) {
+      const aspect_ratio = outerWidth / outerHeight;
+      const ideal_width = aspect_ratio < 1 ? 900 : 4096;
       dispatch('startMediaStream', {
-        video: true,
+        video: {
+          width: { ideal: ideal_width },
+          aspectRatio: aspect_ratio < 1 ? 1 : aspect_ratio,
+        },
       })
         .then(() => {
           get(state.stream)
