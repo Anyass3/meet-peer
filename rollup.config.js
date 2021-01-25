@@ -83,7 +83,7 @@ export default {
   },
 
   server: {
-    input: { server: config.server.input().server.replace(/\.js$/, '.ts') },
+    input: { server: config.server.input().server.replace(/\.js$/, '-dmt.js') },
     output: config.server.output(),
     plugins: [
       replace({

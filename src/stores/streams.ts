@@ -158,7 +158,7 @@ export default {
             newScreenStream.getVideoTracks()[0],
             screenStream
           );
-          p.peer.send(get(state.socket)['id'] + ' sharing screen');
+          p.peer.send(state.socket['id'] + ' sharing screen');
         })
       )();
       screenStream.removeTrack(screenStream.getVideoTracks()[0]);
@@ -193,7 +193,7 @@ export default {
     endedSharing({ state, dispatch }) {
       state.peers.subscribe((peers) =>
         peers.forEach((p) => {
-          p.peer.send(get(state.socket)['id'] + 'stopped sharing screen');
+          p.peer.send(state.socket['id'] + 'stopped sharing screen');
         })
       )();
       state.screens.update((set) => {

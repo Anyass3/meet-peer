@@ -26,6 +26,7 @@
   import JoinedMenu from '../../components/joinedMenu.svelte';
   import { throttle } from '../../utils';
   import { NotificationDisplay } from '@beyonk/svelte-notifications';
+  // import { connected } from 'process';
   const {
     getUserId,
     getPeers,
@@ -35,6 +36,9 @@
     getReconnecting,
     getScreens,
     getPinged,
+    ctmConnected,
+    ctmState,
+    // ctmApi,
   } = store.getters;
 
   const peers = getPeers(),
@@ -43,13 +47,29 @@
     reconnecting = getReconnecting(),
     sendingJoinRequest = getJoinRequest(),
     screens = getScreens(),
-    pinged = getPinged();
+    pinged = getPinged(),
+    state = ctmState(),
+    connected = ctmConnected();
+  // api = ctmApi();
 
   let id,
     join_meet_text = 'Enter Meet Now';
   $: join_meet_text = $sendingJoinRequest ? 'Connecting...' : 'Enter Meet Now';
   $: id = getUserId();
+  $: (() => {
+    console.log('connected', $connected);
+    console.log('state', $state);
+    if (typeof window !== 'undefined') window['state'] = state;
+    // console.log('api', store.api);
+  })();
 
+  // function joinRoom() {
+  //   api.call('join', { roomId: params.roomId, peerId: state.connector.clientPublicKeyHex });
+  // }
+
+  // function leaveRoom() {
+  //   api.call('leave', { roomId: params.roomId, peerId: state.connector.clientPublicKeyHex });
+  // }
   // initiator
 
   onMount(() => {
@@ -94,6 +114,8 @@
     </div>
     {#if !$inMeet}
       <div class="as-center d-flex justify-center">
+        <!-- <button class="btn btn-primary" on:click={joinRoom}>joinRoom</button>
+        <button class="btn btn-primary" on:click={leaveRoom}>leaveRoom</button> -->
         <a
           class:disabled={$sendingJoinRequest}
           id="joinMeet"

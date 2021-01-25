@@ -4,10 +4,11 @@
   "version": "0.0.1",
   "scripts": {
     "dev": "sapper dev",
-    "setup_turn":"chmod +x stun_turn/setup.sh && ./stun_turn/setup.sh",
+    "setup_turn": "chmod +x stun_turn/setup.sh && ./stun_turn/setup.sh",
     "build": "sapper build --legacy",
     "export": "sapper export --legacy",
     "start": "node __sapper__/build",
+    "dmt-hook": "~/.dmt/user/devices/this/scripts/sync_dmt_apps_into_engine",
     "validate": "svelte-check --ignore src/node_modules/@sapper"
   },
   "keywords": [],
@@ -16,6 +17,7 @@
   "dependencies": {
     "@types/socket.io": "^2.1.12",
     "bootstrap": "^5.0.0-beta1",
+    "colors": "^1.4.0",
     "compression": "^1.7.1",
     "connectome": "^0.0.87",
     "express": "^4.17.1",
@@ -24,8 +26,6 @@
     "sibilant-webaudio": "^0.1.5",
     "simple-peer": "^9.9.3",
     "sirv": "^1.0.0",
-    "socket.io": "^3.0.3",
-    "socket.io-client": "^3.0.4",
     "stores-x": "^0.0.74",
     "uuid": "^8.3.1"
   },

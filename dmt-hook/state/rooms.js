@@ -1,8 +1,5 @@
 export default function rooms() {
-  return [
-    { roomId: 'RoomA', participants: [] },
-    { roomId: 'RoomB', participants: [] }
-  ];
+  return [];
 }
 
 // example api on frontend:
