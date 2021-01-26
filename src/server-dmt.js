@@ -15,13 +15,17 @@ const { newServerKeypair: newKeypair, ConnectionsAcceptor } = connectome;
 
 import { MirroringStore } from 'connectome/stores';
 
+const MAX_PEERS = 100; // this is the max number allowed for chat room.
+
 const state = { rooms: [] };
 
 // import makeApi from './makeApi';
 
 function makeApi(store) {
   const { state } = store;
+
   state.rooms = state.rooms || [];
+
   return {
     getRoom(roomId) {
       return state.rooms.find((room) => room.roomId === roomId);
@@ -142,8 +146,8 @@ function init({ program }) {
       socket.emit('signal-connect');
     });
 
-    socket.on('join-room', ({ roomId, name }) => {
-      console.log('join-room: ', name);
+    socket.on('join-room', ({ roomId, peerName }) => {
+      console.log('join-room: ', peerName);
       if (api.getRoom(roomId)) {
         const len = api.getRoom(roomId).participants.length;
         // console.log(len)
@@ -153,11 +157,11 @@ function init({ program }) {
           socket.emit('room-full');
           api
             .getRoom(roomId)
-            .participants.forEach((s) => socket.to(s.id).emit('notAllowed-room-full', name));
+            .participants.forEach((s) => socket.to(s.id).emit('notAllowed-room-full', peerName));
           return;
         }
-        api.join({ peerId: socket.key, peerName: name, roomId });
-      } else api.join({ peerId: socket.key, peerName: name, roomId });
+        api.join({ peerId: socket.key, peerName, roomId });
+      } else api.join({ peerId: socket.key, peerName, roomId });
       // peerRoom[socket.key] = roomId;
       const peers = api
         .getRoom(roomId)
@@ -175,7 +179,7 @@ function init({ program }) {
         signaledPeer.emit('user-joined', {
           signal: payload.signal,
           peerId: socket.key,
-          name: payload.name,
+          peerName: payload.peerName,
         });
       else
         signaledPeer.emit('receiving-candidate', {
@@ -187,14 +191,15 @@ function init({ program }) {
       socket.to(payload.peerId).emit('receiving-returned-signal', {
         signal: payload.signal,
         id: socket.key,
-        name: payload.name,
+        peerName: payload.peerName,
       });
-      console.log('returning-signal', payload.name);
+      console.log('returning-signal', payload.peerName);
     });
     socket.on('signal-disconnect', () => {
       socket.broadcast('peer-left', socket.key);
       api.leave({ peerId: socket.key });
       console.log('signal-disconnect');
+      socket.emit('disconnect');
     });
   });
   // console.log('store', store, channelList);
@@ -231,19 +236,6 @@ const dev = NODE_ENV === 'development';
 
 const express = require('express');
 
-const app = express();
-
-const { v4: uid } = require('uuid');
-
-const MAX_PEERS = 100; // this is the max number allowed for chat room.
-
-const server = require('http').createServer(app);
-const io = require('socket.io')(server);
-app
-  .get('/new-room', (req, res) => {
-    res.redirect(`room/${uid()}`);
-    console.log('redirected to new room');
-  })
-  .use(compression({ threshold: 0 }), sirv('static', { dev }), sapper.middleware());
-
-server.listen(PORT);
+express()
+  .use(compression({ threshold: 0 }), sirv('static', { dev }), sapper.middleware())
+  .listen(PORT);

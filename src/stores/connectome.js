@@ -1,68 +1,66 @@
-import { makeConnectedStore } from 'connectome/stores';
+// import { connectBrowser, newClientKeypair } from 'connectome';
+import { ConnectedStore } from 'connectome/stores';
 
-const client = typeof window !== 'undefined';
-//  this is to avoid server failure
-// as connetome/stores=>makeConnectedStore is not server side friendly
-
-let store = {};
-let socket;
-// const apiName = 'dmtapp:meet:rooms';
-
-if (client) {
-  const address = window.location.hostname;
-
-  const port = '3700';
-
-  const protocol = 'dmtapp';
-
-  const lane = 'meet';
-
-  store = new makeConnectedStore({ address, protocol, port, lane });
-  // store.state.connector.send({ signal: 'join-room', data: 'hi there' });
-  socket = {
-    emit(signal, data) {
-      store.state.connector.send({ signal, data });
-    },
-    on(signal, fn) {
-      store.state.connector.on(signal, fn);
-    },
-    get connected() {
-      return store.state.connector.connected;
-    },
-    get disconnected() {
-      return store.state.connector.closed();
-    },
-    disconnect() {}, // needs some work cuz even after force disconnect it connects again
-    get id() {
-      return store.state.connector.clientPublicKeyHex;
-    },
-  };
-  socket.on('connect', () => console.log('ghjkhf'));
-  socket.on('signal-error', (data) => console.error('signal-error', data.msg));
-  socket.on('new-peer', (data) => console.log(`A new peer justed poped in ${data}`));
-  socket.on('joined', (data) => console.log(data));
-  window.onbeforeunload = () => {
-    socket.emit('signal-disconnect');
-  };
-}
 export default {
-  noStore: ['ctmConnected', 'ctmState', 'ctmApi', 'socket'],
-  defaults: { ctmConnected: false, ctmState: false },
+  // noStore: ['ctmConnected', 'ctmState', 'ctmApi'],
+  // defaults: { ctmConnected: { getters: false }, ctmState: { getters: false } },
   state: {
-    socket,
-    ctmConnected: store.connected,
-    ctmState: store.state,
+    // ctmConnected: null,
+    // ctmState: null,
     // ctmApi: store.api ? store.api(apiName) : store.api,
   },
   getters: {
-    ctmConnected(state) {
-      return state.ctmConnected;
-    },
-    ctmState(state) {
-      return state.ctmState;
-    },
+    // ctmConnected(state) {
+    //   return state.ctmConnected;
+    // },
+    // ctmState(state) {
+    //   return state.ctmState;
+    // },
     // ctmApi(state) {
     //   return state.ctmApi;
     // },
+  },
+  actions: {
+    startConnectome({ commit }) {
+      //  needs some work and thinking on how to make decentralized connection between user nodes
+      // but soon
+
+      const address = window.location.hostname;
+
+      const port = '3700';
+
+      const protocol = 'dmtapp';
+      // const keypair = newClientKeypair();
+
+      const lane = 'meet';
+
+      class Store {
+        constructor() {
+          // const store = connectBrowser({ address, ssl: false, protocol, port, lane, keypair });
+          const store = new ConnectedStore({ address, protocol, port, lane });
+          this.connector = store.connector;
+        }
+        emit(signal, data) {
+          this.connector.send({ signal, data });
+        }
+        on(signal, fn) {
+          this.connector.on(signal, fn);
+        }
+        get connected() {
+          return this.connector.connected;
+        }
+        get disconnected() {
+          return this.connector.closed();
+        }
+        disconnect() {
+          this.connector.connection.terminate();
+          this.connector.decommission();
+        }
+        get id() {
+          return this.connector.clientPublicKeyHex;
+        }
+      }
+      commit('setSocket', new Store());
+    },
   },
 };

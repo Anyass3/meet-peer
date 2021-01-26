@@ -1,5 +1,4 @@
 import { get } from 'svelte/store';
-import type { Socket } from 'socket.io-client';
 import { notifier } from '@beyonk/svelte-notifications';
 export default {
   default: { iceConfig: false, notifier: false },
@@ -55,12 +54,12 @@ export default {
         })
       );
     },
-    savePeer(state, peer, peerId, name) {
+    savePeer(state, peer, peerId, peerName) {
       state.peers.update((peers) =>
         peers.add({
           peerId: peerId,
           peer,
-          name,
+          peerName,
         })
       );
     },
@@ -68,7 +67,7 @@ export default {
   actions: {
     // this user creates an offer to a peer
     // new comers notifying old comers of the by signaling
-    createPeer: ({ state, commit, dispatch }, peerId, name) => {
+    createPeer: ({ state, commit, dispatch }, peerId, peerName) => {
       const peer = new window['SimplePeer']({
         initiator: true,
         trickle: true,
@@ -85,16 +84,16 @@ export default {
         state.socket.emit('signaling-peer', {
           peerId,
           signal,
-          name: get(state.userName),
+          peerName: get(state.userName),
         });
       });
 
-      commit('savePeer', peer, peerId, name);
+      commit('savePeer', peer, peerId, peerName);
 
       peer.on('stream', (stream) => {
         console.log('stream');
         if (stream.getTracks().length === 2) dispatch('playVideo', stream, peerId);
-        else dispatch('playShare', peer, stream, peerId, name);
+        else dispatch('playShare', peer, stream, peerId, peerName);
       });
 
       peer.on('error', (error) => {
@@ -105,11 +104,10 @@ export default {
         }
         console.error('peer-error:', error.code);
       });
-
     },
     // this user creates an answer to a peer who sends an offer
     // old comers waiting for signals
-    addPeer: ({ state, dispatch, commit }, incomingSignal, peerId, name) => {
+    addPeer: ({ state, dispatch, commit }, incomingSignal, peerId, peerName) => {
       const peer = new window['SimplePeer']({
         initiator: false,
         trickle: true,
@@ -122,17 +120,17 @@ export default {
       // being signaled by this user because { initiator: false,}
       peer.on('signal', (signal) => {
         console.log('add', signal);
-        state.socket.emit('returning-signal', { peerId, signal, name });
+        state.socket.emit('returning-signal', { peerId, signal, peerName });
       });
 
       peer.signal(incomingSignal);
 
-      commit('savePeer', peer, peerId, name);
+      commit('savePeer', peer, peerId, peerName);
 
       peer.on('stream', (stream) => {
         // console.log('stream');
         if (stream.getTracks().length === 2) dispatch('playVideo', stream, peerId);
-        else dispatch('playShare', peer, stream, peerId, name);
+        else dispatch('playShare', peer, stream, peerId, peerName);
       });
 
       peer.on('connect', () => {
@@ -146,7 +144,6 @@ export default {
         }
         console.error('peer-error:', error.code);
       });
-
     },
 
     playVideo({ commit }, stream, peerId) {
@@ -213,7 +210,7 @@ export default {
       });
       peer.peer.destroy();
       commit('deletePeerScreen', g, peerId);
-      return peer.name;
+      return peer.peerName;
     },
   },
 };

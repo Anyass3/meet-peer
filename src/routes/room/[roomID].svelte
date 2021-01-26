@@ -1,15 +1,5 @@
 <script context="module" lang="ts">
   export async function preload({ params }) {
-    // the `slug` parameter is available because
-    // this file is called [slug].svelte
-    // const res = await this.fetch(`blog/${params.slug}.json`);
-    // const data = await res.json();
-
-    // if (res.status === 200) {
-    // 	return { post: data };
-    // } else {
-    // 	this.error(res.status, data.message);
-    // }
     return {
       params: { roomId: params.roomID },
     };
@@ -19,14 +9,13 @@
 <script lang="ts">
   // const SimplePeer = require("simple-peer");
   import { onMount } from 'svelte';
-  // import io from "socket.io-client";
   export let params: { roomId: string };
   import store from '../../stores';
   import Video from '../../components/video.svelte';
   import JoinedMenu from '../../components/joinedMenu.svelte';
   import { throttle } from '../../utils';
   import { NotificationDisplay } from '@beyonk/svelte-notifications';
-  // import { connected } from 'process';
+
   const {
     getUserId,
     getPeers,
@@ -36,8 +25,8 @@
     getReconnecting,
     getScreens,
     getPinged,
-    ctmConnected,
-    ctmState,
+    // ctmConnected,
+    // ctmState,
     // ctmApi,
   } = store.getters;
 
@@ -47,21 +36,23 @@
     reconnecting = getReconnecting(),
     sendingJoinRequest = getJoinRequest(),
     screens = getScreens(),
-    pinged = getPinged(),
-    state = ctmState(),
-    connected = ctmConnected();
+    pinged = getPinged();
+  // state = ctmState(),
+  // connected = ctmConnected();
   // api = ctmApi();
 
   let id,
     join_meet_text = 'Enter Meet Now';
+
   $: join_meet_text = $sendingJoinRequest ? 'Connecting...' : 'Enter Meet Now';
+
   $: id = getUserId();
-  $: (() => {
-    console.log('connected', $connected);
-    console.log('state', $state);
-    if (typeof window !== 'undefined') window['state'] = state;
-    // console.log('api', store.api);
-  })();
+  // $: (() => {
+  // console.log('connected', $connected);
+  // console.log('state', $state);
+  // if (typeof window !== 'undefined') window['state'] = state;
+  // console.log('api', store.api);
+  // })();
 
   // function joinRoom() {
   //   api.call('join', { roomId: params.roomId, peerId: state.connector.clientPublicKeyHex });
@@ -107,15 +98,13 @@
           <Video {id} {name} />
         {/each}
         {#each [...$peers] as peer (peer.peerId)}
-          <Video id={'peer' + peer.peerId} name={peer.name} />
+          <Video id={'peer' + peer.peerId} name={peer.peerName} />
         {/each}
         <Video {id} name={$name} inMeet={$inMeet} user />
       </div>
     </div>
     {#if !$inMeet}
       <div class="as-center d-flex justify-center">
-        <!-- <button class="btn btn-primary" on:click={joinRoom}>joinRoom</button>
-        <button class="btn btn-primary" on:click={leaveRoom}>leaveRoom</button> -->
         <a
           class:disabled={$sendingJoinRequest}
           id="joinMeet"
