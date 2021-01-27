@@ -1,5 +1,5 @@
-// import { connectBrowser, newClientKeypair } from 'connectome';
-import { ConnectedStore } from 'connectome/stores';
+import { connectBrowser, newClientKeypair } from 'connectome';
+//import { ConnectedStore } from 'connectome/stores';
 
 export default {
   // noStore: ['ctmConnected', 'ctmState', 'ctmApi'],
@@ -36,9 +36,7 @@ export default {
 
       class Store {
         constructor() {
-          // const store = connectBrowser({ address, ssl: false, protocol, port, lane, keypair });
-          const store = new ConnectedStore({ address, protocol, port, lane });
-          this.connector = store.connector;
+          this.connector = connectBrowser({ address, protocol, port, lane });
           this.on('try-reconnect', (n) => {
             if (n === 6) this.connector.emit('disconnect');
           });
