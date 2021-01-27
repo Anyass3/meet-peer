@@ -6,12 +6,7 @@ import * as sapper from '@sapper/server';
 
 // NOTE: _remotePubkeyHex===key===peerId
 
-// console.log('connectome', connectome);
 const { newServerKeypair: newKeypair, ConnectionsAcceptor } = connectome;
-
-// console.log('connectome', connectome);
-// console.log('ConnectionsAcceptor', ConnectionsAcceptor);
-// TODO: example usage of stores.CanonicStore (former dmt/store)
 
 import { MirroringStore } from 'connectome/stores';
 
@@ -112,7 +107,12 @@ function init({ program }) {
         return {
           emit(signal, data) {
             if (!channel) {
-              This.emit('signal-error', { msg: `channel with key: ${key} is not in the room` });
+              api.leave({ peerId: key });
+              This.emit('signal-error', {
+                key,
+                code: 'CHANNEL-DISCONNECT',
+                msg: `NOT in the room - channel key: ${key}`,
+              });
               console.log('signal-error');
               return;
             }
@@ -126,7 +126,9 @@ function init({ program }) {
           const channel = this.get(participant.peerId);
           if (!channel) {
             this.emit('signal-error', {
-              msg: `channel with key: ${participant.peerId} is not in the room`,
+              key,
+              code: 'CHANNEL-DISCONNECT',
+              msg: `NOT in the room - channel key: ${key}`,
             });
             console.log('signal-error');
             return;
@@ -138,7 +140,8 @@ function init({ program }) {
     return new _socket_(key);
   };
 
-  store.mirror(channelList);
+  // store.mirror(channelList);
+
   channelList.on('new_channel', (channel) => {
     const socket = makeSocket(channel._remotePubkeyHex);
 
@@ -148,6 +151,7 @@ function init({ program }) {
 
     socket.on('join-room', ({ roomId, peerName }) => {
       console.log('join-room: ', peerName);
+
       if (api.getRoom(roomId)) {
         const len = api.getRoom(roomId).participants.length;
         // console.log(len)
@@ -162,15 +166,11 @@ function init({ program }) {
         }
         api.join({ peerId: socket.key, peerName, roomId });
       } else api.join({ peerId: socket.key, peerName, roomId });
-      // peerRoom[socket.key] = roomId;
       const peers = api
         .getRoom(roomId)
         .participants.filter((participant) => participant.peerId !== socket.key);
       // console.log(peers)
       socket.emit('joined-in-room', peers);
-      // socket.join(roomId)
-      // socket.to(roomId).broadcast.emit('user-connected', {userId, data})
-      // console.log(userId)
     });
     socket.on('signaling-peer', (payload) => {
       const signaledPeer = socket.to(payload.peerId);

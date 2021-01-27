@@ -35,20 +35,30 @@ export default {
   },
   actions: {
     joinMeet: ({ state, commit, dispatch, g }) => {
-      dispatch('startConnectome').then(() => {
-        if (!get(state.userName)) {
-          state.notify.warning('Please input your name to join');
-          return;
-        }
+      if (!get(state.userName)) {
+        state.notify.warning('Please input your name to join');
+        return;
+      }
 
+      dispatch('startConnectome').then(() => {
         commit('setJoinRequest', true);
 
         const socket = g('getSocket');
         window['sk'] = socket;
 
-        socket.on('signal-error', (data) => console.error('signal-error', data.msg));
+        socket.on('signal-error', (error) => {
+          if (error.code === 'CHANNEL-DISCONNECT' && error.key) dispatch('removePeer', error.key);
+          console.error('signal-error', error.msg);
+        });
+
         window.onbeforeunload = () => {
           socket.emit('signal-disconnect');
+        };
+        window.onoffline = () => {
+          state.notify.danger('Oops!!. It seems you just went offline');
+          window.ononline = () => {
+            state.notify.success('Thankfully!!. It seems you are online again');
+          };
         };
 
         socket.on('ready', () => {
@@ -114,7 +124,7 @@ export default {
         socket.on('notAllowed-room-full', (peerName) => {
           state.notify.info(`${peerName} wanted to join but room is already full`);
         });
-        socket.on('disconect', () => dispatch('onDisconnect'));
+        socket.on('disconnect', () => dispatch('onDisconnect'));
         // socket.on('reconnect-attempt', (reason) => {
         //   console.log('reconnecting-attempt', reason);
         // });
@@ -136,19 +146,21 @@ export default {
         setTimeout(() => {
           if (state.socket.disconnected) {
             dispatch('setReconnecting', false).then(() => dispatch('leaveMeet'));
-            console.log('socket.disconnected leaving meet');
-          } else console.log('socket has re-connected re-joining meet');
-        }, 10000);
+            state.notify.danger(`reconnecting timeout`);
+            // console.log('socket.disconnected leaving meet');
+          } else {
+            state.notify.success(`socket has re-connected re-joining meet`);
+            // console.log('socket has re-connected re-joining meet');
+          }
+        }, 50000);
       } else {
         state.socket.disconnect();
-        dispatch('setSocket', null);
         console.log('socket completed destroyed');
       }
     },
     leaveMeet: ({ state, commit, dispatch }) => {
-      state.socket.emit('signal-disconnect');
-      commit('setJoinRequest', false);
-      dispatch('setHasLeftWillingly', true); //:)sorry
+      dispatch('setJoinRequest', false);
+      commit('setHasLeftWillingly', true); //:)sorry
 
       dispatch('onDisconnect');
 

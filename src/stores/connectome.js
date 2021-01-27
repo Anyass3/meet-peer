@@ -21,7 +21,7 @@ export default {
     // },
   },
   actions: {
-    startConnectome({ commit }) {
+    startConnectome({ commit, dispatch }) {
       //  needs some work and thinking on how to make decentralized connection between user nodes
       // but soon
 
@@ -39,6 +39,9 @@ export default {
           // const store = connectBrowser({ address, ssl: false, protocol, port, lane, keypair });
           const store = new ConnectedStore({ address, protocol, port, lane });
           this.connector = store.connector;
+          this.on('try-reconnect', (n) => {
+            if (n === 6) this.connector.emit('disconnect');
+          });
         }
         emit(signal, data) {
           this.connector.send({ signal, data });
@@ -53,8 +56,10 @@ export default {
           return this.connector.closed();
         }
         disconnect() {
+          this.emit('signal-disconnect');
           this.connector.connection.terminate();
           this.connector.decommission();
+          dispatch('setSocket', {});
         }
         get id() {
           return this.connector.clientPublicKeyHex;

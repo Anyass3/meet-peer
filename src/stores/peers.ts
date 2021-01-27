@@ -33,7 +33,6 @@ export default {
   },
   mutations: {
     setPeerMedia(state, id, mediaStream, options = {}) {
-      // const peers: Set<any> = get(state.peers);
       const media: any = document.getElementById('peer' + id);
       media.srcObject = mediaStream;
       for (let prop in options) media[prop] = options[prop];
@@ -74,6 +73,8 @@ export default {
         streams: [get(state.stream), get(state.screenStream)],
         config: state.iceConfig,
       });
+
+      dispatch('applyPeer', peer, peerId, peerName);
       // window['peer'] = peer._pc;
       // console.log('created peer:', peer);
       //this peer is already in the meet
@@ -87,23 +88,6 @@ export default {
           peerName: get(state.userName),
         });
       });
-
-      commit('savePeer', peer, peerId, peerName);
-
-      peer.on('stream', (stream) => {
-        console.log('stream');
-        if (stream.getTracks().length === 2) dispatch('playVideo', stream, peerId);
-        else dispatch('playShare', peer, stream, peerId, peerName);
-      });
-
-      peer.on('error', (error) => {
-        if (error.code === 'ERR_CONNECTION_FAILURE') {
-          // const socket =state.socket;
-          // window['sk'] = socket;
-          // state.notifier.warning('Connection failure')
-        }
-        console.error('peer-error:', error.code);
-      });
     },
     // this user creates an answer to a peer who sends an offer
     // old comers waiting for signals
@@ -115,6 +99,8 @@ export default {
         config: state.iceConfig,
       });
 
+      dispatch('applyPeer', peer, peerId, peerName);
+
       // window['peer'] = peer._pc;
       // peer will not signal now except after
       // being signaled by this user because { initiator: false,}
@@ -125,27 +111,27 @@ export default {
 
       peer.signal(incomingSignal);
 
+      peer.on('connect', () => {
+        if (get(state.sharingScreen)) peer.send(state.socket['id'] + ' sharing screen');
+      });
+    },
+    applyPeer({ state, dispatch, commit }, peer, peerId, peerName) {
       commit('savePeer', peer, peerId, peerName);
 
       peer.on('stream', (stream) => {
-        // console.log('stream');
         if (stream.getTracks().length === 2) dispatch('playVideo', stream, peerId);
         else dispatch('playShare', peer, stream, peerId, peerName);
       });
 
-      peer.on('connect', () => {
-        if (get(state.sharingScreen)) peer.send(state.socket['id'] + ' sharing screen');
-      });
-
       peer.on('error', (error) => {
         if (error.code === 'ERR_CONNECTION_FAILURE') {
-          // const socket = state.socket;
-          // window['sk'] = socket;
+          dispatch('removePeer', peerId).then((peerName) => {
+            state.notify.info(`${peerName} disconnected due to some issues`);
+          });
         }
         console.error('peer-error:', error.code);
       });
     },
-
     playVideo({ commit }, stream, peerId) {
       const video = commit('setPeerMedia', peerId, new MediaStream([stream.getVideoTracks()[0]]), {
         muted: true,
