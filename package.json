@@ -19,14 +19,14 @@
     "bootstrap": "^5.0.0-beta1",
     "colors": "^1.4.0",
     "compression": "^1.7.1",
-    "connectome": "^0.0.87",
+    "connectome": "file:../connectome",
     "express": "^4.17.1",
     "pem": "^1.14.4",
     "polka": "^0.5.2",
     "sibilant-webaudio": "^0.1.5",
     "simple-peer": "^9.9.3",
     "sirv": "^1.0.0",
-    "stores-x": "^0.0.74",
+    "stores-x": "^0.0.80",
     "uuid": "^8.3.1"
   },
   "devDependencies": {
