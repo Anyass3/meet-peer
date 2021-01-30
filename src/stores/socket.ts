@@ -5,13 +5,14 @@ export default {
     joinRequest: false,
     enteredRoom: false,
     reconnecting: false,
+    reconnectingTimeout: 30000,
     hasLeftWillingly: false,
     userName: '',
     roomId: '',
   },
   getters: {
     getUserId: (state) => {
-      return state.socket ? state.socket['id'] : 'userVideo';
+      return state.socket.id || 'userVideo';
     },
     getUserVideoId(this, state) {
       return 'user-' + this.getUserId(state);
@@ -58,6 +59,10 @@ export default {
             // socket.emit('am-back-online');
           };
         };
+        socket.on('settings', ({ reconnectingTimeout }) => {
+          // this is incase when having a decentralized meeting the settings can be the same
+          dispatch('setReconnectingTimeout', reconnectingTimeout);
+        });
 
         socket.on('ready', () => {
           if (state.joinRequest.get()) {
@@ -121,6 +126,7 @@ export default {
         socket.on('disconnect', (reason) => {
           if (reason === 'reconnecting') return;
           console.log('socket disconnected');
+          //:)sorry
 
           if (!state.hasLeftWillingly.get()) {
             socket.emit('signal-disconnect');
@@ -133,7 +139,7 @@ export default {
                 state.notify.danger(`Reconnecting Timeout`);
                 // console.log('socket.disconnected leaving meet');
               } else socket.reconnect();
-            }, 30000);
+            }, state.reconnectingTimeout.get());
           } else {
             console.log('socket completed destroyed');
           }

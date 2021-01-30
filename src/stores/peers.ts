@@ -1,4 +1,5 @@
 import { notifier } from '@beyonk/svelte-notifications';
+import socket from './socket';
 export default {
   default: { iceConfig: false, notifier: false },
   noStore: ['iceConfig', 'notify'],
@@ -73,7 +74,7 @@ export default {
   actions: {
     // this user creates an offer to a peer
     // new comers notifying old comers of the by signaling
-    createPeer: ({ state, commit, dispatch }, peerId, peerName) => {
+    createPeer: ({ state, dispatch }, peerId, peerName) => {
       const peer = new window['SimplePeer']({
         initiator: true,
         trickle: true,
@@ -135,13 +136,17 @@ export default {
       });
 
       peer.on('error', (error) => {
+        // if (state.socket.disconnected) state.socket.reconnect();
         if (error.code === 'ERR_CONNECTION_FAILURE') {
           dispatch('removePeer', peerId).then((peerName) => {
             state.notify.info(`${peerName} disconnected due to some issues`);
             state.socket.emitLocal('peer-error');
           });
         }
-        console.error('peer-error:', error.code);
+        // else if (error.code === 'ERR_SET_REMOTE_DESCRIPTION') {
+        //   dispatch('createPeer', peerId, peerName);
+        // }
+        console.error('peer-error:', error);
       });
     },
     playVideo({ commit }, stream, peerId) {
@@ -199,14 +204,14 @@ export default {
         if (!was_pinged && window) window.scrollTo(0, 0);
       });
     },
-    removePeer: ({ state, g, commit }, peerId) => {
+    removePeer: ({ g, commit }, peerId) => {
       const peer = g('getPeer', peerId);
       commit('deletePeer', peer);
       peer.peer.destroy();
       commit('deletePeerScreen', g, peerId);
       return peer.peerName;
     },
-    removeAllPeers({ state, g, commit, dispatch }) {
+    removeAllPeers({ state, commit, dispatch }) {
       state.peers.get().forEach((p) => {
         dispatch('removePeer', p.peerId);
       });

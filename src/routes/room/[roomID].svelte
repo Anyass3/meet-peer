@@ -41,8 +41,7 @@
   // connected = ctmConnected();
   // api = ctmApi();
 
-  let id,
-    join_meet_text = 'Enter Meet Now';
+  let join_meet_text = 'Enter Meet Now';
 
   $: join_meet_text = $sendingJoinRequest ? 'Connecting...' : 'Enter Meet Now';
 

@@ -35,6 +35,7 @@ export default {
         }
         reconnect() {
           this.emitLocal('disconnect', 'reconnecting');
+          this.emit('reconnected'); // it will only reach the server if connected
         }
         disconnect() {
           this.emit('signal-disconnect');

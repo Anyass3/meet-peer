@@ -4,7 +4,7 @@
   import Ping from './icons/pingIcon.svelte';
   import { MicOffIcon, MicIcon, CameraOffIcon, CameraIcon } from 'svelte-feather-icons';
   import { onDestroy } from 'svelte';
-  const { toggleCamera, toggleMic, togglePing } = store.actions;
+  const { toggleCamera, toggleMic } = store.actions;
   const { getCameraState, getMicState, getPinged, getUserName } = store.getters;
   const camera = getCameraState(),
     mic = getMicState(),

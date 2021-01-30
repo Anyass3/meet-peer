@@ -11,6 +11,7 @@ const { newServerKeypair: newKeypair, ConnectionsAcceptor } = connectome;
 import { MirroringStore } from 'connectome/stores';
 
 const MAX_PEERS = 100; // this is the max number allowed for chat room.
+const settings = { reconnectingTimeout: 30000 };
 
 const state = { rooms: [] };
 
@@ -77,6 +78,12 @@ function init({ program }) {
         this.channel = this.get(key, false);
         this.key = key;
       }
+      get connected() {
+        return !this.disconnected;
+      }
+      get disconnected() {
+        return this.channel.closed();
+      }
       in_room(key) {
         return this.room.participants.find((participant) => participant.peerId === key);
       }
@@ -95,9 +102,12 @@ function init({ program }) {
       on(signal, fn) {
         this.channel.on(signal, fn);
       }
+      emitLocal(signal, data) {
+        this.channel.emit(signal, data);
+      }
 
       emit(signal, data) {
-        this.channel.send({ signal, data });
+        this.channel.signal(signal, data);
       }
 
       to(key) {
@@ -115,7 +125,7 @@ function init({ program }) {
               console.log('signal-error');
               return;
             }
-            channel.send({ signal, data });
+            channel.signal(signal, data);
           },
         };
       }
@@ -132,7 +142,7 @@ function init({ program }) {
             console.log('signal-error');
             return;
           }
-          if (channel._remotePubkeyHex !== this.key) channel.send({ signal, data });
+          if (channel._remotePubkeyHex !== this.key) channel.signal(signal, data);
         });
       }
     }
@@ -164,6 +174,7 @@ function init({ program }) {
         .participants.filter((participant) => participant.peerId !== socket.key);
       // console.log(peers)
       socket.emit('joined-in-room', peers);
+      socket.emit('settings', settings);
     });
     socket.on('signaling-peer', (payload) => {
       const signaledPeer = socket.to(payload.peerId);
@@ -188,13 +199,26 @@ function init({ program }) {
       });
       // console.log('returning-signal', payload.peerName);
     });
-    socket.on('signal-disconnect', () => {
+    socket.on('signal-disconnect', (reason) => {
       socket.broadcast('peer-disconnect', socket.key);
       api.leave({ peerId: socket.key });
       // console.log('signal-disconnect');
-      socket.emit('signal-disconnect');
+      if (reason) console.log(reason);
+      // socket.emit('signal-disconnect');
     });
-    socket.on('disconnect', () => console.log('disconnected'));
+    socket.on('disconnect', () => {
+      let reconnected;
+      socket.on('reconnected', () => {
+        reconnected = true;
+      });
+      setTimeout(() => {
+        console.log('socket.reconnected', reconnected);
+        if (reconnected) {
+          socket.emitLocal('signal-disconnect', 'Reconnecting Timeout');
+        } else console.log('connected again');
+      }, settings.reconnectingTimeout);
+      // console.log('disconnected');
+    });
   });
   // console.log('store', store, channelList);
 }
