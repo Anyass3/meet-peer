@@ -42,7 +42,7 @@ export default {
           });
         }
         emit(signal, data) {
-          this.connector.send({ signal, data });
+          this.connector.signal(signal, data);
         }
         on(signal, fn) {
           this.connector.on(signal, fn);

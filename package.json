@@ -19,7 +19,7 @@
     "bootstrap": "^5.0.0-beta1",
     "colors": "^1.4.0",
     "compression": "^1.7.1",
-    "connectome": "^0.0.87",
+    "connectome": "0.0.88",
     "express": "^4.17.1",
     "pem": "^1.14.4",
     "polka": "^0.5.2",
