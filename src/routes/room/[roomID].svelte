@@ -47,6 +47,7 @@
   $: join_meet_text = $sendingJoinRequest ? 'Connecting...' : 'Enter Meet Now';
 
   $: id = getUserId();
+
   // $: (() => {
   // console.log('connected', $connected);
   // console.log('state', $state);
@@ -79,7 +80,9 @@
   ><script defer src="/simplepeer.min.js">
   </script></svelte:head
 >
+
 <NotificationDisplay />
+
 <main class="vh-100 vw-100 m-0 position-relative bg-light">
   <div style="z-index:20" class="w-100 p-0 m-0 position-fixed d-flex justify-center">
     {#if !$inMeet}
@@ -110,7 +113,8 @@
           id="joinMeet"
           class="btn btn-success w-100"
           on:click={throttle(() => store.dispatch('joinMeet'))}
-          style="margin: 20px;">
+          style="margin: 20px;"
+        >
           {join_meet_text}
         </a>
       </div>

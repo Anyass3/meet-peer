@@ -60,9 +60,8 @@ function init({ program }) {
 
   const api = makeApi(store);
 
-  function onConnect({ channel }) {
+  function onConnect() {
     channelNum++;
-    // channel.attachObject('dmtapp:meet:rooms', api);
     console.log(colors.blue(`channel ${channelNum}`));
   }
 
@@ -140,14 +139,8 @@ function init({ program }) {
     return new _socket_(key);
   };
 
-  // store.mirror(channelList);
-
   channelList.on('new_channel', (channel) => {
     const socket = makeSocket(channel._remotePubkeyHex);
-
-    socket.on('signal-connect', () => {
-      socket.emit('signal-connect');
-    });
 
     socket.on('join-room', ({ roomId, peerName }) => {
       console.log('join-room: ', peerName);
@@ -164,8 +157,8 @@ function init({ program }) {
             .participants.forEach((s) => socket.to(s.id).emit('notAllowed-room-full', peerName));
           return;
         }
-        api.join({ peerId: socket.key, peerName, roomId });
-      } else api.join({ peerId: socket.key, peerName, roomId });
+      }
+      api.join({ peerId: socket.key, peerName, roomId });
       const peers = api
         .getRoom(roomId)
         .participants.filter((participant) => participant.peerId !== socket.key);
@@ -174,7 +167,7 @@ function init({ program }) {
     });
     socket.on('signaling-peer', (payload) => {
       const signaledPeer = socket.to(payload.peerId);
-      console.log('signaling-peer');
+      // console.log('signaling-peer');
       if (payload.signal.type === 'offer')
         signaledPeer.emit('user-joined', {
           signal: payload.signal,
@@ -193,14 +186,15 @@ function init({ program }) {
         id: socket.key,
         peerName: payload.peerName,
       });
-      console.log('returning-signal', payload.peerName);
+      // console.log('returning-signal', payload.peerName);
     });
     socket.on('signal-disconnect', () => {
-      socket.broadcast('peer-left', socket.key);
+      socket.broadcast('peer-disconnect', socket.key);
       api.leave({ peerId: socket.key });
-      console.log('signal-disconnect');
-      socket.emit('disconnect');
+      // console.log('signal-disconnect');
+      socket.emit('signal-disconnect');
     });
+    socket.on('disconnect', () => console.log('disconnected'));
   });
   // console.log('store', store, channelList);
 }
@@ -231,6 +225,7 @@ start({ port: 3700 });
 
 // /connectome
 
+// sapper server
 const { PORT, NODE_ENV } = process.env;
 const dev = NODE_ENV === 'development';
 

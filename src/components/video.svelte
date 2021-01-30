@@ -3,6 +3,7 @@
   import { keyInputThrottle } from '../utils';
   import Ping from './icons/pingIcon.svelte';
   import { MicOffIcon, MicIcon, CameraOffIcon, CameraIcon } from 'svelte-feather-icons';
+  import { onDestroy } from 'svelte';
   const { toggleCamera, toggleMic, togglePing } = store.actions;
   const { getCameraState, getMicState, getPinged, getUserName } = store.getters;
   const camera = getCameraState(),
@@ -23,6 +24,17 @@
 
   $: cam_color = $camera === 'on' ? 'success' : 'danger';
   $: mic_color = $mic === 'on' ? 'success' : 'danger';
+
+  onDestroy(() => {
+    if (typeof document === undefined) {
+      const videoStream = document.getElementById(id)['srcObject'];
+      const audioStream = document.getElementById(id + 'audio')['srcObject'];
+      if (videoStream) videoStream.getTracks().forEach((track) => track.stop());
+      if (audioStream) audioStream.getTracks().forEach((track) => track.stop());
+      document.getElementById(id)['srcObject'] = null;
+      document.getElementById(id + 'audio')['srcObject'] = null;
+    }
+  });
 </script>
 
 <div
@@ -34,7 +46,8 @@
   <span
     on:click={() => store.dispatch('togglePing', id)}
     class="position-absolute"
-    style="z-index:30;">
+    style="z-index:30;"
+  >
     <Ping width="24" height="24" cls="alert alert-{pingColor} lead3" style="padding:2px" /></span
   >
   <!-- svelte-ignore a11y-media-has-caption -->

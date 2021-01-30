@@ -1,5 +1,3 @@
-import { get } from 'svelte/store';
-
 export default {
   state: {
     startedVideoStream: false,
@@ -15,13 +13,13 @@ export default {
   },
   mutations: {
     toggleCameraState(state) {
-      state.cameraState.set(get(state.cameraState) === 'on' ? 'off' : 'on');
+      state.cameraState.set(state.cameraState.get() === 'on' ? 'off' : 'on');
     },
     toggleMicState(state) {
-      state.micState.set(get(state.micState) === 'on' ? 'off' : 'on');
+      state.micState.set(state.micState.get() === 'on' ? 'off' : 'on');
     },
     setUserVideoProp(state, props: object) {
-      const video: HTMLVideoElement = get(state.userVideo);
+      const video: HTMLVideoElement = state.userVideo.get();
       for (let prop in props) video[prop] = props[prop];
       return video;
     },
@@ -49,7 +47,7 @@ export default {
       commit('setScreenStream', new MediaStream([fakeVideo()]));
       const video = commit('setUserVideoProp', { srcObject: fake_stream, muted: true });
       try {
-        video.play();
+        if (video.paused) video.play();
       } catch (error) {}
     },
     showRequestDeviceError({ state }, err, device) {
@@ -57,43 +55,45 @@ export default {
       if (err.name === 'AbortError') msg = 'It seems some other app is using your ' + device;
       if (err.name === 'TypeError') msg = 'Please try to use HTTPS if not already using it';
       state.notify.danger(`${err.name}: ${msg}`, 7000);
-      console.error(err.name, err.message);
+      // console.error(err.name, err.message);
     },
 
     //togglers
     toggleCamera({ state, dispatch }) {
-      dispatch('enableCamera', get(state.cameraState) === 'off');
+      dispatch('enableCamera', state.cameraState.get() === 'off');
     },
     toggleMic({ state, dispatch }) {
-      dispatch('enableMic', get(state.micState) === 'off');
+      dispatch('enableMic', state.micState.get() === 'off');
     },
     toggleShareScreen({ state, dispatch }) {
-      if (!get(state.sharingScreen)) dispatch('startScreenShare');
+      if (!state.sharingScreen.get()) dispatch('startScreenShare');
       else dispatch('endScreenShare');
     },
     //camera && mic streams
     async startMediaStream({ state, dispatch }, { video = false, audio = false } = {}) {
-      if (!!audio && get(state.startedAudioStream)) return;
-      if (!!video && get(state.startedVideoStream)) return;
+      if (!!audio && state.startedAudioStream.get()) return;
+      if (!!video && state.startedVideoStream.get()) return;
+
       if (video === false && audio === false) return;
+
       let newStream: MediaStream = await navigator.mediaDevices.getUserMedia({ video, audio });
-      if (!get(state.startedVideoStream)) dispatch('setStartedVideoStream', !!video);
-      if (!get(state.startedAudioStream)) dispatch('setStartedAudioStream', !!audio);
-      const stream: MediaStream = get(state.stream);
+
+      if (!state.startedVideoStream.get()) dispatch('setStartedVideoStream', !!video);
+      if (!state.startedAudioStream.get()) dispatch('setStartedAudioStream', !!audio);
+
+      const stream: MediaStream = state.stream.get();
+      const peers: Array<any> = state.peers.get();
+
       if (video) {
-        state.peers.subscribe((peers) =>
-          peers.forEach((p) => {
-            p.peer.replaceTrack(stream.getVideoTracks()[0], newStream.getVideoTracks()[0], stream);
-          })
-        )();
+        peers.forEach((p) => {
+          p.peer.replaceTrack(stream.getVideoTracks()[0], newStream.getVideoTracks()[0], stream);
+        });
         stream.removeTrack(stream.getVideoTracks()[0]);
         stream.addTrack(newStream.getVideoTracks()[0]);
       } else {
-        state.peers.subscribe((peers) =>
-          peers.forEach((p) => {
-            p.peer.replaceTrack(stream.getAudioTracks()[0], newStream.getAudioTracks()[0], stream);
-          })
-        )();
+        peers.forEach((p) => {
+          p.peer.replaceTrack(stream.getAudioTracks()[0], newStream.getAudioTracks()[0], stream);
+        });
         stream.removeTrack(stream.getAudioTracks()[0]);
         stream.addTrack(newStream.getAudioTracks()[0]);
       }
@@ -103,7 +103,8 @@ export default {
         audio: true,
       })
         .then(() => {
-          get(state.stream)
+          state.stream
+            .get()
             ['getAudioTracks']()
             .forEach((track) => (track.enabled = v));
           commit('setMicState', v ? 'on' : 'off');
@@ -120,7 +121,8 @@ export default {
         },
       })
         .then(() => {
-          get(state.stream)
+          state.stream
+            .get()
             ['getVideoTracks']()
             .forEach((track) => (track.enabled = v));
           commit('setCameraState', v ? 'on' : 'off');
@@ -128,11 +130,13 @@ export default {
         .catch((err) => dispatch('showRequestDeviceError', err, 'Camera'));
     },
     endMediaStream({ state, dispatch, commit }) {
-      const stream: MediaStream = get(state.stream);
-      stream.getTracks().forEach((track) => {
-        track.enabled = false;
-        track.stop();
-      });
+      state.stream
+        .get()
+        ['getTracks']()
+        .forEach((track) => {
+          track.enabled = false;
+          track.stop();
+        });
       commit('setCameraState', 'off');
       commit('setMicState', 'off');
       dispatch('setStartedVideoStream', false);
@@ -142,25 +146,25 @@ export default {
 
     //screen share stream
     async captureScreen({ state, dispatch }) {
-      let newScreenStream = await navigator.mediaDevices['getDisplayMedia']({ video: true });
+      const newScreenStream = await navigator.mediaDevices['getDisplayMedia']({ video: true });
+
       state.screens.update((set) =>
         set.add({
           id: 'userVideo-share-screen',
           name: 'My' + ' Screen',
         })
       );
-      let screenStream: MediaStream = get(state.screenStream);
+      const screenStream: MediaStream = state.screenStream.get();
 
-      state.peers.subscribe((peers) =>
-        peers.forEach((p) => {
-          p.peer.replaceTrack(
-            screenStream.getVideoTracks()[0],
-            newScreenStream.getVideoTracks()[0],
-            screenStream
-          );
-          p.peer.send(state.socket['id'] + ' sharing screen');
-        })
-      )();
+      state.peers.get()['forEach']((p) => {
+        p.peer.replaceTrack(
+          screenStream.getVideoTracks()[0],
+          newScreenStream.getVideoTracks()[0],
+          screenStream
+        );
+        p.peer.send(state.socket['id'] + ' sharing screen');
+      });
+
       screenStream.removeTrack(screenStream.getVideoTracks()[0]);
       screenStream.addTrack(newScreenStream.getVideoTracks()[0]);
 
@@ -177,25 +181,24 @@ export default {
           state.notify.success('You are sharing your screen');
 
           setTimeout(() => {
-            document.getElementById('userVideo-share-screen')['srcObject'] = get(
-              state.screenStream
-            );
+            document.getElementById('userVideo-share-screen')[
+              'srcObject'
+            ] = state.screenStream.get();
           }, 100);
         })
         .catch((err) => dispatch('showRequestDeviceError', err));
     },
     endScreenShare({ state, dispatch }) {
-      const screenStream: MediaStream = get(state.screenStream);
+      const screenStream: MediaStream = state.screenStream.get();
       screenStream.getTracks().forEach((track) => track.stop());
       document.getElementById('userVideo-share-screen')['srcObject'] = null;
       dispatch('endedSharing');
     },
     endedSharing({ state, dispatch }) {
-      state.peers.subscribe((peers) =>
-        peers.forEach((p) => {
-          p.peer.send(state.socket['id'] + 'stopped sharing screen');
-        })
-      )();
+      state.peers.get()['forEach']((p) => {
+        p.peer.send(state.socket['id'] + 'stopped sharing screen');
+      });
+
       state.screens.update((set) => {
         const screen = Array.from(set).find((i) => i['id'] === 'userVideo-share-screen');
         set.delete(screen);

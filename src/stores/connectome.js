@@ -1,25 +1,6 @@
-import { connectBrowser, newClientKeypair } from 'connectome';
-//import { ConnectedStore } from 'connectome/stores';
+import { connectBrowser } from 'connectome';
 
 export default {
-  // noStore: ['ctmConnected', 'ctmState', 'ctmApi'],
-  // defaults: { ctmConnected: { getters: false }, ctmState: { getters: false } },
-  state: {
-    // ctmConnected: null,
-    // ctmState: null,
-    // ctmApi: store.api ? store.api(apiName) : store.api,
-  },
-  getters: {
-    // ctmConnected(state) {
-    //   return state.ctmConnected;
-    // },
-    // ctmState(state) {
-    //   return state.ctmState;
-    // },
-    // ctmApi(state) {
-    //   return state.ctmApi;
-    // },
-  },
   actions: {
     startConnectome({ commit, dispatch }) {
       //  needs some work and thinking on how to make decentralized connection between user nodes
@@ -30,16 +11,15 @@ export default {
       const port = '3700';
 
       const protocol = 'dmtapp';
-      // const keypair = newClientKeypair();
 
       const lane = 'meet';
 
-      class Store {
+      class Socket {
         constructor() {
           this.connector = connectBrowser({ address, protocol, port, lane });
-          this.on('try-reconnect', (n) => {
-            if (n === 6) this.connector.emit('disconnect');
-          });
+        }
+        emitLocal(signal, data) {
+          this.connector.emit(signal, data);
         }
         emit(signal, data) {
           this.connector.send({ signal, data });
@@ -53,6 +33,9 @@ export default {
         get disconnected() {
           return this.connector.closed();
         }
+        reconnect() {
+          this.emitLocal('disconnect', 'reconnecting');
+        }
         disconnect() {
           this.emit('signal-disconnect');
           this.connector.connection.terminate();
@@ -63,7 +46,7 @@ export default {
           return this.connector.clientPublicKeyHex;
         }
       }
-      commit('setSocket', new Store());
+      commit('setSocket', new Socket());
     },
   },
 };
