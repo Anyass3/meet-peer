@@ -14,7 +14,7 @@ npm run dmt-hook  # you should have DMT installed
 npm run dev
 ```
 
-# if didn't have DMT installed (runing independently of DMT)
+### if didn't have DMT installed (runing independently of DMT)
 
 > in rollup.config.js
 
