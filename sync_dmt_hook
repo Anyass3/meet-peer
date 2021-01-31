@@ -3,7 +3,7 @@
 source ~/.dmt/etc/.bash_aliases_bundle # dirsync
 
 # DMT_PACKAGES="$HOME/projects"  # change 'projects' to your repos/projects path
-DMT_APPS="$HOME/.dmt/apps/meet/backend"
+DMT_APPS="$HOME/.dmt/apps"
 
 # DMT-APPS sync
 

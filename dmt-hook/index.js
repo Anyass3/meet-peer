@@ -5,6 +5,9 @@ import { MirroringStore } from 'dmt/connectome-stores';
 
 import state from './state';
 
+const MAX_PEERS = 100; // this is the max number allowed for chat room.
+const settings = { reconnectingTimeout: 30000 };
+
 import makeApi from './makeApi';
 
 function init({ program }) {
