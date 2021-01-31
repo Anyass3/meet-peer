@@ -1,6 +1,5 @@
-import { get } from 'svelte/store';
-import type { Socket } from 'socket.io-client';
 import { notifier } from '@beyonk/svelte-notifications';
+import socket from './socket';
 export default {
   default: { iceConfig: false, notifier: false },
   noStore: ['iceConfig', 'notify'],
@@ -22,11 +21,10 @@ export default {
   },
   getters: {
     getPeer: (state, id) => {
-      return Array.from(get(state.peers)).find((i) => i['peerId'] === id);
+      return Array.from(state.peers.get()).find((i) => i['peerId'] === id);
     },
     getPeerScreen(state, id) {
-      const screens: Set<any> = get(state.screens);
-      return Array.from(screens).find((i) => i['id'] === 'peer-screen-' + id);
+      return Array.from(state.screens.get()).find((i) => i['id'] === 'peer-screen-' + id);
     },
     getPeerVideoId: (state, peerId) => {
       return 'peer-' + peerId;
@@ -34,7 +32,6 @@ export default {
   },
   mutations: {
     setPeerMedia(state, id, mediaStream, options = {}) {
-      // const peers: Set<any> = get(state.peers);
       const media: any = document.getElementById('peer' + id);
       media.srcObject = mediaStream;
       for (let prop in options) media[prop] = options[prop];
@@ -55,91 +52,103 @@ export default {
         })
       );
     },
-    savePeer(state, peer, peerId, name) {
+    savePeer(state, peer, peerId, peerName) {
       state.peers.update((peers) =>
         peers.add({
           peerId: peerId,
           peer,
-          name,
+          peerName,
         })
       );
+    },
+    deletePeer(state, peer) {
+      state.peers.update((peers) => {
+        peers.delete(peer);
+        return peers;
+      });
+    },
+    clearPeers(state) {
+      state.peers.get().clear();
     },
   },
   actions: {
     // this user creates an offer to a peer
     // new comers notifying old comers of the by signaling
-    createPeer: ({ state, commit, dispatch }, peerId, name) => {
+    createPeer: ({ state, dispatch }, peerId, peerName) => {
       const peer = new window['SimplePeer']({
         initiator: true,
         trickle: true,
-        streams: [get(state.stream), get(state.screenStream)],
+        streams: [state.stream.get(), state.screenStream.get()],
         config: state.iceConfig,
       });
-      // window['peer'] = peer._pc;
+
+      dispatch('applyPeer', peer, peerId, peerName);
 
       //this peer is already in the meet
       //I have to initiate({ initiator: true, }) so it will signal as soon as created
       //this to inform it that I have just joined so it can call addPeer
       peer.on('signal', (signal) => {
-        const socket: Socket = get(state.socket);
-        socket.emit('signaling-peer', {
+        // console.log('created', signal);
+        state.socket.emit('signaling-peer', {
           peerId,
           signal,
-          name: get(state.userName),
+          peerName: state.userName.get(),
         });
-      });
-      commit('savePeer', peer, peerId, name);
-      peer.on('stream', (stream) => {
-        if (stream.getTracks().length === 2) dispatch('playVideo', stream, peerId);
-        else dispatch('playShare', peer, stream, peerId, name);
-      });
-      peer.on('error', (error) => {
-        if (error.code === 'ERR_CONNECTION_FAILURE') {
-          // const socket: Socket = get(state.socket);
-          // window['sk'] = socket;
-          // state.notifier.warning('Connection failure')
-        }
-        console.error('peer-error:', error.code);
       });
     },
     // this user creates an answer to a peer who sends an offer
     // old comers waiting for signals
-    addPeer: ({ state, dispatch, commit }, incomingSignal, peerId, name) => {
+    addPeer: ({ state, dispatch, commit }, incomingSignal, peerId, peerName) => {
       const peer = new window['SimplePeer']({
         initiator: false,
         trickle: true,
-        streams: [get(state.stream), get(state.screenStream)],
+        streams: [state.stream.get(), state.screenStream.get()],
         config: state.iceConfig,
       });
+
+      dispatch('applyPeer', peer, peerId, peerName);
 
       // window['peer'] = peer._pc;
       // peer will not signal now except after
       // being signaled by this user because { initiator: false,}
       peer.on('signal', (signal) => {
-        const socket: Socket = get(state.socket);
-        socket.emit('returning-signal', { peerId, signal, name });
+        // console.log('add', signal);
+        state.socket.emit('returning-signal', { peerId, signal, peerName });
       });
 
       peer.signal(incomingSignal);
 
-      commit('savePeer', peer, peerId, name);
+      peer.on('connect', () => {
+        if (state.sharingScreen.get()) peer.send(state.socket['id'] + ' sharing screen');
+      });
+    },
+    applyPeer({ state, dispatch, commit, g }, peer, peerId, peerName) {
+      if (g('getPeer', peerId))
+        dispatch('removePeer', peerId).then((peerName) => {
+          state.notify.info(`${peerName} is being reconnected due to some issue`);
+          commit('savePeer', peer, peerId, peerName);
+        });
+      else commit('savePeer', peer, peerId, peerName);
 
       peer.on('stream', (stream) => {
         if (stream.getTracks().length === 2) dispatch('playVideo', stream, peerId);
-        else dispatch('playShare', peer, stream, peerId, name);
+        else dispatch('playShare', peer, stream, peerId, peerName);
       });
-      peer.on('connect', () => {
-        if (get(state.sharingScreen)) peer.send(get(state.socket)['id'] + ' sharing screen');
-      });
+
       peer.on('error', (error) => {
+        // if (state.socket.disconnected) state.socket.reconnect();
         if (error.code === 'ERR_CONNECTION_FAILURE') {
-          // const socket: Socket = get(state.socket);
-          // window['sk'] = socket;
+          dispatch('removePeer', peerId).then((peerName) => {
+            state.notify.info(`${peerName} disconnected due to some issues`);
+            state.socket.emitLocal('peer-error');
+          });
         }
-        console.error('peer-error:', error.code);
+        // else if (error.code === 'ERR_SET_REMOTE_DESCRIPTION') {
+        //   dispatch('createPeer', peerId, peerName);
+        // }
+        console.error('peer-error:', error);
       });
     },
-
     playVideo({ commit }, stream, peerId) {
       const video = commit('setPeerMedia', peerId, new MediaStream([stream.getVideoTracks()[0]]), {
         muted: true,
@@ -154,10 +163,10 @@ export default {
       );
 
       try {
-        video.play();
+        if (video.paused) video.play();
       } catch (error) {}
       try {
-        audio.play();
+        if (audio.paused) audio.play();
       } catch (error) {}
     },
     playShare({ state, g, dispatch, commit }, peer, stream, peerId, peerName) {
@@ -184,26 +193,29 @@ export default {
           sharing = false;
         } else {
           commit('deletePeerScreen', g, peerId);
-          state.notify.info(`${peerName} has stopped started sharing screen`, 7000);
+          state.notify.info(`${peerName} has stopped sharing screen`, 7000);
           sharing = true;
         }
       });
     },
     togglePing({ state, dispatch }, id) {
-      const was_pinged = get(state.pinged) === id;
+      const was_pinged = state.pinged.get() === id;
       dispatch('setPinged', was_pinged ? '' : id).then(() => {
         if (!was_pinged && window) window.scrollTo(0, 0);
       });
     },
-    removePeer: ({ state, g, commit }, peerId) => {
+    removePeer: ({ g, commit }, peerId) => {
       const peer = g('getPeer', peerId);
-      state.peers.update((peers) => {
-        peers.delete(peer);
-        return peers;
-      });
+      commit('deletePeer', peer);
       peer.peer.destroy();
       commit('deletePeerScreen', g, peerId);
-      return peer.name;
+      return peer.peerName;
+    },
+    removeAllPeers({ state, commit, dispatch }) {
+      state.peers.get().forEach((p) => {
+        dispatch('removePeer', p.peerId);
+      });
+      commit('clearPeers');
     },
   },
 };

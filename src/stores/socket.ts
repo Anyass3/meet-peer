@@ -1,129 +1,162 @@
-import io, { Socket } from 'socket.io-client';
-import { get } from 'svelte/store';
-
 export default {
-  noStore: ['roomId'],
+  noStore: ['roomId', 'socket'],
   state: {
-    socket: null,
+    socket: {},
     joinRequest: false,
     enteredRoom: false,
     reconnecting: false,
+    reconnectingTimeout: 30000,
     hasLeftWillingly: false,
     userName: '',
-    roomId: null,
+    roomId: '',
   },
   getters: {
     getUserId: (state) => {
-      const socket: Socket = get(state.socket);
-      return socket ? socket['id'] : 'userVideo';
+      return state.socket.id || 'userVideo';
     },
-    getUserVideoId: (state) => {
-      const _this: any = this;
-      return 'user-' + _this.getUserId(state);
+    getUserVideoId(this, state) {
+      return 'user-' + this.getUserId(state);
     },
     getUserScreen(state) {
-      const screens: Set<any> = get(state.screens);
-      return Array.from(screens).find((i) => i['id'] === 'userVideo-share-screen');
-    },
-  },
-  mutations: {
-    setRoomId(state, roomId) {
-      state.roomId = roomId;
+      return Array.from(state.screens.get()).find((i) => i['id'] === 'userVideo-share-screen');
     },
   },
   actions: {
     joinMeet: ({ state, commit, dispatch, g }) => {
-      if (!get(state.userName)) {
+      if (!state.userName.get()) {
         state.notify.warning('Please input your name to join');
         return;
       }
-      commit('setJoinRequest', true);
-      const socket: Socket = io.io('/');
-      dispatch('setSocket', socket);
-      socket.on('error', (error) => {
-        console.log(error);
-      });
-      socket.on('connect', () => {
-        if (get(state.joinRequest)) {
-          socket.emit('join-room', { roomId: state.roomId, name: get(state.userName) });
-          console.log('socket connected');
-          commit('setHasLeftWillingly', false);
-          dispatch('setReconnecting', false);
-        } else dispatch('leaveMeet');
-      });
 
-      socket.on('room-full', () => {
-        state.notify.warning('Sorry room is already full');
-        dispatch('leaveMeet');
-      });
+      dispatch('startConnectome').then(() => {
+        commit('setJoinRequest', true);
 
-      // to get and setup peers already in the meet
-      socket.on('joined-in-room', (joinedPeers) => {
-        if (window) window.scrollTo(0, 0);
-        state.notify.info(`${joinedPeers.length} peers are already in meet`);
-        dispatch('setEnteredRoom', true);
-        joinedPeers.forEach((i) => {
-          dispatch('createPeer', i.id, i.name);
-        });
-      });
+        const socket = g('getSocket');
+        // window['sk'] = socket;
 
-      // to get and setup a newly joined peer
-      socket.on('user-joined', (payload) => {
-        dispatch('addPeer', payload.signal, payload.peerId, payload.name).then(() => {
-          state.notify.info(`${payload.name} Joined Meet`);
+        socket.on('signal-error', (error) => {
+          if (error.code === 'CHANNEL-DISCONNECT' && error.key) dispatch('removePeer', error.key);
+          console.error('signal-error', error.msg);
         });
-      });
-      socket.on('receiving-candidate', (payload) => {
-        const peers: Set<any> = get(state.peers);
-        const item: any = g('getPeer', payload.peerId);
-        item.peer.signal(payload.signal);
-      });
-      socket.on('receiving-returned-signal', (payload) => {
-        const peers: Set<any> = get(state.peers);
-        const item: any = g('getPeer', payload.id);
-        item.peer.signal(payload.signal);
-      });
-      socket.on('peer-left', (id) => {
-        dispatch('removePeer', id).then((name) => {
-          state.notify.info(`${name} has left meet`);
-        });
-      });
-      socket.on('notAllowed-room-full', (name) => {
-        state.notify.info(`${name} wanted to join but room is already full`);
-      });
-      socket.on('disconnect', (reason) => {
-        console.log('socket disconnected: ', reason);
-        const peers: any = get(state.peers);
-        peers.forEach((p) => {
-          dispatch('removePeer', p.peerId);
-        });
-        peers.clear();
-        if (!get(state.hasLeftWillingly)) {
-          dispatch('setReconnecting', true);
-          console.log('Has not left willingly');
-          setTimeout(() => {
-            if (socket.disconnected) {
-              dispatch('setReconnecting', false).then(() => dispatch('leaveMeet'));
-              console.log('socket.disconnected leaving meet');
-            } else console.log('socket has re-connected re-joining meet');
-          }, 10000);
-        }
 
-        console.log('socket disconnected');
-      });
-      socket.on('reconnect-attempt', (reason) => {
-        console.log('reconnecting-attempt', reason);
+        window.onbeforeunload = () => {
+          socket.emit('signal-disconnect');
+        };
+        window.onoffline = () => {
+          state.notify.danger('Oops!!. It seems you just went offline');
+          socket.on('peer-error', () => {
+            if (state.peers.get()['size'] === 0 && socket.connected) {
+              console.log('socket is still connected');
+              socket.on('online', () => {
+                socket.reconnect();
+              });
+            }
+          });
+
+          window.ononline = () => {
+            state.notify.success('Thankfully!!. It seems you are back online');
+            socket.emitLocal('online');
+            // socket.emit('am-back-online');
+          };
+        };
+        socket.on('settings', ({ reconnectingTimeout }) => {
+          // this is incase when having a decentralized meeting the settings can be the same
+          dispatch('setReconnectingTimeout', reconnectingTimeout);
+        });
+
+        socket.on('ready', () => {
+          if (state.joinRequest.get()) {
+            socket.emit('join-room', { roomId: state.roomId, peerName: state.userName.get() });
+            // console.log('emitted join-room');
+
+            commit('setHasLeftWillingly', false);
+
+            dispatch('setReconnecting', false);
+          } else dispatch('leaveMeet');
+
+          console.log('signal connected');
+        });
+
+        socket.on('room-full', () => {
+          state.notify.warning('Sorry room is already full');
+          dispatch('leaveMeet');
+        });
+
+        // to get and setup peers already in the meet
+        socket.on('joined-in-room', (joinedPeers) => {
+          if (window) window.scrollTo(0, 0);
+
+          state.notify.info(`${joinedPeers.length} peers are already in meet`);
+
+          dispatch('setEnteredRoom', true);
+
+          joinedPeers.forEach((i) => {
+            console.log('creating peer');
+            dispatch('createPeer', i.peerId, i.peerName);
+          });
+
+          console.log('joinedPeers', joinedPeers);
+        });
+
+        // to get and setup a newly joined peer
+        socket.on('user-joined', (payload) => {
+          // console.log('user-joined');
+          dispatch('addPeer', payload.signal, payload.peerId, payload.peerName).then(() => {
+            state.notify.info(`${payload.peerName} Joined Meet`);
+          });
+        });
+        socket.on('receiving-candidate', (payload) => {
+          const item: any = g('getPeer', payload.peerId);
+          item.peer.signal(payload.signal);
+          // console.log('received-candidate');
+        });
+        socket.on('receiving-returned-signal', (payload) => {
+          const item: any = g('getPeer', payload.id);
+          item.peer.signal(payload.signal);
+          // console.log('received-returned-signal');
+        });
+        socket.on('peer-disconnect', (id) => {
+          dispatch('removePeer', id).then((peerName) => {
+            state.notify.info(`${peerName} has left meet`);
+          });
+        });
+        socket.on('notAllowed-room-full', (peerName) => {
+          state.notify.info(`${peerName} wanted to join but room is already full`);
+        });
+        socket.on('disconnect', (reason) => {
+          if (reason === 'reconnecting') return;
+          console.log('socket disconnected');
+          //:)sorry
+
+          if (!state.hasLeftWillingly.get()) {
+            socket.emit('signal-disconnect');
+            dispatch('setReconnecting', true);
+            console.log('Has not left willingly');
+
+            setTimeout(() => {
+              if (state.socket.disconnected) {
+                dispatch('setReconnecting', false).then(() => dispatch('leaveMeet'));
+                state.notify.danger(`Reconnecting Timeout`);
+                // console.log('socket.disconnected leaving meet');
+              } else socket.reconnect();
+            }, state.reconnectingTimeout.get());
+          } else {
+            console.log('socket completed destroyed');
+          }
+        });
       });
     },
     leaveMeet: ({ state, commit, dispatch }) => {
-      commit('setJoinRequest', false);
-      dispatch('setHasLeftWillingly', true); //:)sorry
-      const socket: Socket = get(state.socket);
-      socket.disconnect();
+      dispatch('setJoinRequest', false);
+      commit('setHasLeftWillingly', true); //:)sorry
+
+      dispatch('removeAllPeers');
+      state.socket.disconnect();
+
       dispatch('setEnteredRoom', false);
-      if (get(state.sharingScreen)) dispatch('endScreenShare');
+      if (state.sharingScreen.get()) dispatch('endScreenShare');
       dispatch('endMediaStream');
-      state.notify.info(`You Have Left The Meet`);
+      state.notify.success(`You have successfully left the meet`, 7000);
     },
   },
 };

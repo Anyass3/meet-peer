@@ -1,15 +1,5 @@
 <script context="module" lang="ts">
   export async function preload({ params }) {
-    // the `slug` parameter is available because
-    // this file is called [slug].svelte
-    // const res = await this.fetch(`blog/${params.slug}.json`);
-    // const data = await res.json();
-
-    // if (res.status === 200) {
-    // 	return { post: data };
-    // } else {
-    // 	this.error(res.status, data.message);
-    // }
     return {
       params: { roomId: params.roomID },
     };
@@ -19,13 +9,13 @@
 <script lang="ts">
   // const SimplePeer = require("simple-peer");
   import { onMount } from 'svelte';
-  // import io from "socket.io-client";
   export let params: { roomId: string };
   import store from '../../stores';
   import Video from '../../components/video.svelte';
   import JoinedMenu from '../../components/joinedMenu.svelte';
   import { throttle } from '../../utils';
   import { NotificationDisplay } from '@beyonk/svelte-notifications';
+
   const {
     getUserId,
     getPeers,
@@ -35,6 +25,9 @@
     getReconnecting,
     getScreens,
     getPinged,
+    // ctmConnected,
+    // ctmState,
+    // ctmApi,
   } = store.getters;
 
   const peers = getPeers(),
@@ -44,12 +37,30 @@
     sendingJoinRequest = getJoinRequest(),
     screens = getScreens(),
     pinged = getPinged();
+  // state = ctmState(),
+  // connected = ctmConnected();
+  // api = ctmApi();
 
-  let id,
-    join_meet_text = 'Enter Meet Now';
+  let join_meet_text = 'Enter Meet Now';
+
   $: join_meet_text = $sendingJoinRequest ? 'Connecting...' : 'Enter Meet Now';
+
   $: id = getUserId();
 
+  // $: (() => {
+  // console.log('connected', $connected);
+  // console.log('state', $state);
+  // if (typeof window !== 'undefined') window['state'] = state;
+  // console.log('api', store.api);
+  // })();
+
+  // function joinRoom() {
+  //   api.call('join', { roomId: params.roomId, peerId: state.connector.clientPublicKeyHex });
+  // }
+
+  // function leaveRoom() {
+  //   api.call('leave', { roomId: params.roomId, peerId: state.connector.clientPublicKeyHex });
+  // }
   // initiator
 
   onMount(() => {
@@ -68,7 +79,9 @@
   ><script defer src="/simplepeer.min.js">
   </script></svelte:head
 >
+
 <NotificationDisplay />
+
 <main class="vh-100 vw-100 m-0 position-relative bg-light">
   <div style="z-index:20" class="w-100 p-0 m-0 position-fixed d-flex justify-center">
     {#if !$inMeet}
@@ -87,7 +100,7 @@
           <Video {id} {name} />
         {/each}
         {#each [...$peers] as peer (peer.peerId)}
-          <Video id={'peer' + peer.peerId} name={peer.name} />
+          <Video id={'peer' + peer.peerId} name={peer.peerName} />
         {/each}
         <Video {id} name={$name} inMeet={$inMeet} user />
       </div>
@@ -99,7 +112,8 @@
           id="joinMeet"
           class="btn btn-success w-100"
           on:click={throttle(() => store.dispatch('joinMeet'))}
-          style="margin: 20px;">
+          style="margin: 20px;"
+        >
           {join_meet_text}
         </a>
       </div>

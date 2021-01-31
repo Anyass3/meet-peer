@@ -1,0 +1,20 @@
+#!/bin/bash
+
+source ~/.dmt/etc/.bash_aliases_bundle # dirsync
+
+# DMT_PACKAGES="$HOME/projects"  # change 'projects' to your repos/projects path
+DMT_APPS="$HOME/.dmt/apps"
+
+# DMT-APPS sync
+
+SOURCE="$(cd "$(dirname "$1")"; pwd)/$(basename "$1")dmt-hook"
+
+# dmt-meet
+
+mkdir -p "$DMT_APPS/meet/backend"; cd $_
+# SOURCE="$DMT_PACKAGES/dmt-meet/dmt-hook" # change dmt-meet if you have a different name 
+dirsync "$SOURCE" .
+
+printf "${GREEN}✓ Updated ~/.dmt/apps${NC}\n"
+
+dmt restart

@@ -1,37 +1,53 @@
-import { makeConnectedStore } from 'connectome/stores';
+import { connectBrowser } from 'connectome';
 
-const client = typeof window !== 'undefined';
-//  this is to avoid server failure
-// as connetome/stores=>makeConnectedStore is not server side friendly
-
-const address = 'localhost';
-const port = '7780';
-
-const protocol = 'dmtapp';
-const lane = 'search';
-
-let store = {};
-
-if (client) {
-  // store = new makeConnectedStore({ address, protocol, port, lane });
-}
 export default {
-  noStore: ['ctmConnected', 'ctmState', 'ctmApi'],
-  defaults: false,
-  state: {
-    ctmConnected: store.connected,
-    ctmState: store.state,
-    ctmApi: store.api,
-  },
-  getters: {
-    ctmConnected(state) {
-      return state.ctmConnected;
-    },
-    ctmState(state) {
-      return state.ctmState;
-    },
-    ctmApi(state) {
-      return state.ctmApi;
+  actions: {
+    startConnectome({ commit, dispatch }) {
+      //  needs some work and thinking on how to make decentralized connection between user nodes
+      // but soon
+
+      const address = window.location.hostname;
+
+      const port = '7780';
+
+      const protocol = 'dmtapp';
+
+      const lane = 'meet';
+
+      class Socket {
+        constructor() {
+          this.connector = connectBrowser({ address, protocol, port, lane });
+        }
+        emitLocal(signal, data) {
+          this.connector.emit(signal, data);
+        }
+        emit(signal, data) {
+          this.connector.signal(signal, data);
+        }
+        on(signal, fn) {
+          this.connector.on(signal, fn);
+        }
+        get connected() {
+          return this.connector.connected;
+        }
+        get disconnected() {
+          return this.connector.closed();
+        }
+        reconnect() {
+          this.emitLocal('disconnect', 'reconnecting');
+          this.emit('reconnected'); // it will only reach the server if connected
+        }
+        disconnect() {
+          this.emit('signal-disconnect');
+          this.connector.connection.terminate();
+          this.connector.decommission();
+          dispatch('setSocket', {});
+        }
+        get id() {
+          return this.connector.clientPublicKeyHex;
+        }
+      }
+      commit('setSocket', new Socket());
     },
   },
 };
