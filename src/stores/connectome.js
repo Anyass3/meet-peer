@@ -8,7 +8,7 @@ export default {
 
       const address = window.location.hostname;
 
-      const port = '3700';
+      const port = '7780';
 
       const protocol = 'dmtapp';
 

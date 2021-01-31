@@ -8,7 +8,7 @@
     "build": "sapper build --legacy",
     "export": "sapper export --legacy",
     "start": "node __sapper__/build",
-    "dmt-hook": "~/.dmt/user/devices/this/scripts/sync_dmt_apps_into_engine",
+    "dmt-hook": "chmod +x sync_dmt_hook && ./sync_dmt_hook",
     "validate": "svelte-check --ignore src/node_modules/@sapper"
   },
   "keywords": [],

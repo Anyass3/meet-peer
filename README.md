@@ -8,7 +8,36 @@ install dependencies and run the project in development mode:
 
 ```bash
 npm install # or yarn
+
+npm run dmt-hook  # you should have DMT installed
+
 npm run dev
+```
+
+# if didn't have DMT installed (runing independently of DMT)
+
+> in rollup.config.js
+
+```diff
+...
+...
+  server: {
+-     input: { server: config.server.input().server.replace(/\.js$/, '.ts') },
++     input: { server: config.server.input().server.replace(/\.js$/, '-dmt.js') },
+    ...
+    ...
+  }
+```
+
+> in src/stores/connectome.js
+
+```diff
+...
+...
+- const port = '7780';
++ const port = '3700';
+...
+...
 ```
 
 This will start the development server on [localhost:3000](http://localhost:3000). Open it and click around.
@@ -25,8 +54,8 @@ sudo apt-get install coturn
 
 ```
 
-
 edit /etc/turnserver.conf and uncomment the following and changing the ones in bold.
+
 ```
 #listening-ip=Your Private IP // if you have one else it defaults to listenting to all ipv4 ipv6 addresses
 
