@@ -9,7 +9,9 @@ export default {
       const address = window.location.hostname;
 
       const port = '7780';
-      const endpoint = `ws://${window.location.host}`;
+
+      const endpoint =
+        (window.location.protocol.includes('s') ? 'wss' : 'ws') + '://' + window.location.host;
 
       const protocol = 'dmtapp';
 
