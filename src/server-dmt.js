@@ -265,7 +265,7 @@ const app = require('express')();
 const server = require('http').createServer(app);
 
 app.use(compression({ threshold: 0 }), sirv('static', { dev }), sapper.middleware());
-console.log(server);
+
 start({ server });
 
 server.listen(PORT);
