@@ -137,16 +137,17 @@ export default {
 
       peer.on('error', (error) => {
         // if (state.socket.disconnected) state.socket.reconnect();
-        if (error.code === 'ERR_CONNECTION_FAILURE') {
-          dispatch('removePeer', peerId).then((peerName) => {
+        // if (error.code === 'ERR_CONNECTION_FAILURE') {
+        dispatch('removePeer', peerId).then((peerName) => {
+          if (state.connected.get())
             state.notify.info(`${peerName} disconnected due to some issues`);
-            state.socket.emitLocal('peer-error');
-          });
-        }
+          state.socket.emitLocal('peer-error', error.code);
+        });
+        // }
         // else if (error.code === 'ERR_SET_REMOTE_DESCRIPTION') {
         //   dispatch('createPeer', peerId, peerName);
         // }
-        console.error('peer-error:', error);
+        console.log('peer-error:', error.code);
       });
     },
     playVideo({ commit }, stream, peerId) {
