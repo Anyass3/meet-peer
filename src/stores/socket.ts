@@ -182,6 +182,7 @@ export default {
     },
     leaveMeet: ({ state, commit, dispatch }) => {
       dispatch('setJoinRequest', false);
+      dispatch('setReconnecting', false);
       commit('setHasLeftWillingly', true); //:)sorry
 
       dispatch('removeAllPeers');
