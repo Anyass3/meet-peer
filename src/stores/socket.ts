@@ -4,6 +4,7 @@ export default {
     socket: {},
     joinRequest: false,
     enteredRoom: false,
+    connected: false,
     reconnecting: false,
     reconnectingTimeout: 30000,
     hasLeftWillingly: false,
@@ -65,13 +66,36 @@ export default {
         });
 
         socket.on('ready', () => {
+          // this is because ready doesn't always mean it's connected to server
+          socket.emit('signal-connect'); // this makes sure that we are infact connected to server
+
+          const interval = setInterval(() => {
+            socket.emitLocal('check-connect');
+            // this is useful for reconection
+            // we check before reconnecting
+          }, 1000);
+          socket.on('signal-connect', () => {
+            clearInterval(interval);
+          });
+          socket.on('disconnect', () => {
+            clearInterval(interval);
+          });
+        });
+
+        socket.on('signal-connect', () => {
+          // in here means we are actually connected to server
+          // so we can start signaling now
+
+          dispatch('setConnected', true);
+
           if (state.joinRequest.get()) {
+            // if (!state.reconnecting.get())
             socket.emit('join-room', { roomId: state.roomId, peerName: state.userName.get() });
             // console.log('emitted join-room');
 
             commit('setHasLeftWillingly', false);
 
-            dispatch('setReconnecting', false);
+            commit('setReconnecting', false);
           } else dispatch('leaveMeet');
 
           console.log('signal connected');
@@ -124,21 +148,31 @@ export default {
           state.notify.info(`${peerName} wanted to join but room is already full`);
         });
         socket.on('disconnect', (reason) => {
-          if (reason === 'reconnecting') return;
+          dispatch('setConnected', false);
+          // if (reason === 'reconnecting') return;
           console.log('socket disconnected');
           //:)sorry
+          socket.on('check-connect', () => {
+            // if disconnected we check after onready every second
+            // if signal not connected we reconnect it.
+            if (!state.connected.get()) socket.reconnect();
+            console.log('check-connect:: connected', state.connected.get());
+          });
 
           if (!state.hasLeftWillingly.get()) {
-            socket.emit('signal-disconnect');
+            // socket.emit('reconnecting');
             dispatch('setReconnecting', true);
             console.log('Has not left willingly');
 
             setTimeout(() => {
-              if (state.socket.disconnected) {
+              if (state.socket.disconnected && !state.connected.get()) {
                 dispatch('setReconnecting', false).then(() => dispatch('leaveMeet'));
                 state.notify.danger(`Reconnecting Timeout`);
                 // console.log('socket.disconnected leaving meet');
-              } else socket.reconnect();
+              } //else if (!state.connected.get()) {
+              // socket.reconnect();
+              //   console.log('socket.reconnected');
+              // }
             }, state.reconnectingTimeout.get());
           } else {
             console.log('socket completed destroyed');
@@ -148,6 +182,7 @@ export default {
     },
     leaveMeet: ({ state, commit, dispatch }) => {
       dispatch('setJoinRequest', false);
+      dispatch('setReconnecting', false);
       commit('setHasLeftWillingly', true); //:)sorry
 
       dispatch('removeAllPeers');
