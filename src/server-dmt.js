@@ -117,11 +117,8 @@ function init({ program }) {
           emit(signal, data) {
             if (!channel) {
               api.leave({ peerId: key });
-              This.emit('signal-error', {
-                key,
-                code: 'CHANNEL-DISCONNECT',
-                msg: `NOT in the room - channel key: ${key}`,
-              });
+              This.emit(..._socket_.channelDisconnect(key));
+              // This.broadcast(..._socket_.channelDisconnect(key));
               console.log('signal-error');
               return;
             }
@@ -134,16 +131,23 @@ function init({ program }) {
         this.room.participants.forEach((participant) => {
           const channel = this.get(participant.peerId);
           if (!channel) {
-            this.emit('signal-error', {
-              key,
-              code: 'CHANNEL-DISCONNECT',
-              msg: `NOT in the room - channel key: ${key}`,
-            });
+            this.emit(..._socket_.channelDisconnect(key));
+            // this.broadcast(..._socket_.channelDisconnect(key));
             console.log('signal-error');
             return;
           }
           if (channel._remotePubkeyHex !== this.key) channel.signal(signal, data);
         });
+      }
+      static channelDisconnect(key) {
+        return [
+          'signal-error',
+          {
+            key,
+            code: 'CHANNEL-DISCONNECT',
+            msg: `NOT in the room - channel key: ${key}`,
+          },
+        ];
       }
     }
     return new _socket_(key);
@@ -151,6 +155,10 @@ function init({ program }) {
 
   channelList.on('new_channel', (channel) => {
     const socket = makeSocket(channel._remotePubkeyHex);
+
+    socket.on('signal-connect', () => {
+      socket.emit('signal-connect');
+    });
 
     socket.on('join-room', ({ roomId, peerName }) => {
       console.log('join-room: ', peerName);
@@ -207,27 +215,28 @@ function init({ program }) {
       // socket.emit('signal-disconnect');
     });
     socket.on('disconnect', () => {
-      let reconnected;
-      socket.on('reconnected', () => {
-        reconnected = true;
-      });
-      setTimeout(() => {
-        console.log('socket.reconnected', reconnected);
-        if (reconnected) {
-          socket.emitLocal('signal-disconnect', 'Reconnecting Timeout');
-        } else console.log('connected again');
-      }, settings.reconnectingTimeout);
+      socket.emitLocal('signal-disconnect', 'disconnected');
+      // let reconnected;
+      // socket.on('reconnected', () => {
+      //   reconnected = true;
+      // });
+      // setTimeout(() => {
+      //   console.log('socket.reconnected', reconnected);
+      //   if (reconnected) {
+      //     socket.emitLocal('signal-disconnect', 'Reconnecting Timeout');
+      //   } else console.log('connected again');
+      // }, settings.reconnectingTimeout);
       // console.log('disconnected');
     });
   });
   // console.log('store', store, channelList);
 }
 
-function start({ port }) {
+function start({ port, server }) {
   // console.log(newKeypair);
   // define connections acceptor
   const keypair = newKeypair();
-  const acceptor = new ConnectionsAcceptor({ port, keypair });
+  const acceptor = new ConnectionsAcceptor({ port, server, keypair });
 
   acceptor.on('protocol_added', ({ protocol, lane }) => {
     console.log(`💡 Connectome protocol ${colors.cyan(protocol)}/${colors.cyan(lane)} ready.`);
@@ -245,16 +254,18 @@ function start({ port }) {
     colors.green(`Connectome → Running websocket connections acceptor on port ${port} ...`)
   );
 }
-start({ port: 3700 });
 
 // /connectome
 
 // sapper server
 const { PORT, NODE_ENV } = process.env;
 const dev = NODE_ENV === 'development';
+const app = require('express')();
 
-const express = require('express');
+const server = require('http').createServer(app);
 
-express()
-  .use(compression({ threshold: 0 }), sirv('static', { dev }), sapper.middleware())
-  .listen(PORT);
+app.use(compression({ threshold: 0 }), sirv('static', { dev }), sapper.middleware());
+console.log(server);
+start({ server });
+
+server.listen(PORT);

@@ -9,6 +9,7 @@ export default {
       const address = window.location.hostname;
 
       const port = '7780';
+      const endpoint = `ws://${window.location.host}`;
 
       const protocol = 'dmtapp';
 
@@ -16,7 +17,7 @@ export default {
 
       class Socket {
         constructor() {
-          this.connector = connectBrowser({ address, protocol, port, lane });
+          this.connector = connectBrowser({ address, protocol, port, lane, endpoint });
         }
         emitLocal(signal, data) {
           this.connector.emit(signal, data);
@@ -34,8 +35,9 @@ export default {
           return this.connector.closed();
         }
         reconnect() {
-          this.emitLocal('disconnect', 'reconnecting');
-          this.emit('reconnected'); // it will only reach the server if connected
+          this.connector.connection.terminate();
+          // this.emitLocal('reconnecting');
+          // this.emit('reconnected'); // it will only reach the server if connected
         }
         disconnect() {
           this.emit('signal-disconnect');
