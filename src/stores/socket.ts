@@ -77,6 +77,9 @@ export default {
           socket.on('signal-connect', () => {
             clearInterval(interval);
           });
+          socket.on('disconnect', () => {
+            clearInterval(interval);
+          });
         });
 
         socket.on('signal-connect', () => {
@@ -179,6 +182,7 @@ export default {
     },
     leaveMeet: ({ state, commit, dispatch }) => {
       dispatch('setJoinRequest', false);
+      dispatch('setReconnecting', false);
       commit('setHasLeftWillingly', true); //:)sorry
 
       dispatch('removeAllPeers');
