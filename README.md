@@ -8,4 +8,5 @@ The goal is to develop the smallest possible test case (under 1000 LOC?) for [th
 We want to see how easy it is to avoid using JITSI and similar approaches to host online meetings.
 
 [Check a working progress demo](https://abu.zetaseek.com/meet/)
-[trial demo](https://meet-peer.herokuapp.com/)
+
+[the trial demo](https://meet-peer.herokuapp.com/)
