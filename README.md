@@ -1,6 +1,6 @@
 ### This is a seeya re-write in sapper, but it's going to be use svelte@next(sveltekit) soon.
 
-[Seeya Meet demo](https://seeya-meet.herokuapp.com)
+[Meet demo](abu.zetaseek.com/meet)
 
 ### Running the project
 
