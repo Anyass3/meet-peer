@@ -1,4 +1,5 @@
 # seeya
+> project currently private. This is an old repo
 
 [Check a working progress demo](https://abu.zetaseek.com/meet/)
 
