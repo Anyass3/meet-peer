@@ -1,10 +1,13 @@
 # seeya
 > project currently private. This is an old repo
 
-[Check a working progress demo](https://abu.zetaseek.com/meet/)
+> Now centrally-decenlalized
 
-[the trial demo](https://meet-peer.herokuapp.com/)
+[Check working progress demos]
+- [abu](https://abu.zetaseek.com/meet/) (dev branch currenctly with bugs)
+- [david](https://david.zetaseek.com/meet/)
 
+[the first trial demo](https://meet-peer.herokuapp.com/)
 
 [checkout sapper branch](https://github.com/Anyass3/meet-peer/tree/sapper)
 
