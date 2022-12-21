@@ -4,10 +4,10 @@
 > Now centrally-decenlalized
 
 [Check working progress demos]
-- [abu](https://abu.zetaseek.com/meet/) (dev branch currenctly with bugs)
+- [abu](https://abu.zetaseek.com/meet/)
 - [david](https://david.zetaseek.com/meet/)
 
-[the first trial demo](https://meet-peer.herokuapp.com/)
+[the first trial demo](https://github.com/Anyass3/meet-peer/tree/basic)
 
 [checkout sapper branch](https://github.com/Anyass3/meet-peer/tree/sapper)
 
